@@ -208,7 +208,7 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 		in := v[0]
 		out := v[1]
 		if reflect.TypeOf(in.Data) == reflect.TypeOf(out.Data) {
-			if in.Type == "add_liquidity" {
+			if in.Action == "add_liquidity" {
 				switch in := in.Data.(type) {
 				case *TransferData:
 					out := out.Data.(*TransferData)

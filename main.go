@@ -43,7 +43,7 @@ func main() {
 }
 
 func fetchSignatureTx(rpcClient *rpc.Client) {
-	txSig := solana.MustSignatureFromBase58("4MSVpVBwxnYTQSF3bSrAB99a3pVr6P6bgoCRDsrBbDMA77WeQqoBDDDXqEh8WpnUy5U4GeotdCG9xyExjNTjYE1u")
+	txSig := solana.MustSignatureFromBase58("66QxLpe6Qu52Lt88ct3hoduQZ3GVVwHC9rsnaGRWeD8FTybabxEC4VaGSW3UPMvedvmjd5nJzhmD95TmN4vVtPkZ")
 	// txSig := solana.MustSignatureFromBase58("AhiFQX1Z3VYbkKQH64ryPDRwxUv8oEPzQVjSvT7zY58UYDm4Yvkkt2Ee9VtSXtF6fJz8fXmb5j3xYVDF17Gr9CG")
 	var maxTxVersion uint64 = 0
 	tx, err := rpcClient.GetTransaction(
