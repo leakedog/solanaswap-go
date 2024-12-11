@@ -202,10 +202,13 @@ func (p *Parser) parsePumpfunSwapData(progID solana.PublicKey, swapDatas []SwapD
 }
 
 func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas []SwapData) {
+	if len(swapDatas) == 0 {
+		return
+	}
+
 	var resultGroup [][2]SwapData
-	who := p.AllAccountKeys[0].String()
-	if len(swapDatas) < 2 {
-		p.Actions = append(p.Actions, NewCommonDataAction(progID, p.TxInfo.Signatures[0].String(), swapDatas[0].Data))
+	if len(swapDatas) == 1 {
+		p.formatTransferData(swapDatas[0], swapDatas[0], progID)
 		return
 	}
 
@@ -221,148 +224,121 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 		in := v[0]
 		out := v[1]
 		if reflect.TypeOf(in.Data) == reflect.TypeOf(out.Data) {
-			var action Action
-			baseAction := BaseAction{
-				ProgramID:   progID.String(),
-				ProgramName: string(ProgramName[progID]),
-				Signature:   p.TxInfo.Signatures[0].String(),
-			}
-			if in.Action == "add_liquidity" {
-				baseAction.InstructionName = "AddLiquidity"
-				switch in := in.Data.(type) {
-				case *TransferData:
-					out := out.Data.(*TransferData)
-					action = CommonAddLiquidityAction{
-						BaseAction:     baseAction,
-						Who:            who,
-						Token1:         in.Mint,
-						Token1Amount:   cast.ToUint64(in.Info.Amount),
-						Token1Decimals: p.SplDecimalsMap[in.Mint],
-						Token2:         out.Mint,
-						Token2Amount:   cast.ToUint64(out.Info.Amount),
-						Token2Decimals: p.SplDecimalsMap[out.Mint],
-					}
-
-				case *TransferCheck:
-					out := out.Data.(*TransferCheck)
-					action = CommonAddLiquidityAction{
-						BaseAction:     baseAction,
-						Who:            who,
-						Token1:         in.Info.Mint,
-						Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
-						Token1Decimals: p.SplDecimalsMap[in.Info.Mint],
-						Token2:         out.Info.Mint,
-						Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
-						Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
-					}
-				}
-
-			} else if in.Action == "remove_liquidity" {
-				baseAction.InstructionName = "RemoveLiquidity"
-				switch in := in.Data.(type) {
-				case *TransferData:
-					out := out.Data.(*TransferData)
-					action = CommonRemoveLiquidityAction{
-						BaseAction:     baseAction,
-						Who:            who,
-						Token1:         in.Mint,
-						Token1Amount:   cast.ToUint64(in.Info.Amount),
-						Token1Decimals: p.SplDecimalsMap[in.Mint],
-						Token2:         out.Mint,
-						Token2Amount:   cast.ToUint64(out.Info.Amount),
-						Token2Decimals: p.SplDecimalsMap[out.Mint],
-					}
-
-				case *TransferCheck:
-					out := out.Data.(*TransferCheck)
-					action = CommonRemoveLiquidityAction{
-						BaseAction:     baseAction,
-						Who:            who,
-						Token1:         in.Info.Mint,
-						Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
-						Token1Decimals: p.SplDecimalsMap[in.Info.Mint],
-						Token2:         out.Info.Mint,
-						Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
-						Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
-					}
-				}
-
-			} else {
-				baseAction.InstructionName = "Swap"
-				switch in := in.Data.(type) {
-				case *TransferData:
-					out := out.Data.(*TransferData)
-					action = CommonSwapAction{
-						BaseAction:        baseAction,
-						Who:               who,
-						FromToken:         in.Mint,
-						FromTokenAmount:   in.Info.Amount,
-						FromTokenDecimals: p.SplDecimalsMap[in.Mint],
-						ToToken:           out.Mint,
-						ToTokenAmount:     out.Info.Amount,
-						ToTokenDecimals:   p.SplDecimalsMap[out.Mint],
-					}
-
-				case *TransferCheck:
-					out := out.Data.(*TransferCheck)
-					action = CommonSwapAction{
-						BaseAction:        baseAction,
-						Who:               who,
-						FromToken:         in.Info.Mint,
-						FromTokenAmount:   cast.ToUint64(in.Info.TokenAmount.Amount),
-						FromTokenDecimals: p.SplDecimalsMap[in.Info.Mint],
-						ToToken:           out.Info.Mint,
-						ToTokenAmount:     cast.ToUint64(out.Info.TokenAmount.Amount),
-						ToTokenDecimals:   p.SplDecimalsMap[out.Info.Mint],
-					}
-				}
-			}
-
-			p.Actions = append(p.Actions, action)
+			p.formatTransferData(in, out, progID)
 		}
 	}
 
 }
 
 func (p *Parser) parseOneTransferSwapData(progID solana.PublicKey, swapDatas []SwapData) {
-	who := p.AllAccountKeys[0].String()
 	in := swapDatas[0]
 	out := lo.LastOrEmpty(swapDatas)
-	switch in := in.Data.(type) {
-	case *TransferData:
-		out := out.Data.(*TransferData)
-		p.Actions = append(p.Actions, CommonSwapAction{
-			BaseAction: BaseAction{
-				ProgramID:       progID.String(),
-				ProgramName:     string(ProgramName[progID]),
-				InstructionName: "Unknown Group Swap",
-				Signature:       p.TxInfo.Signatures[0].String(),
-			},
-			Who:               who,
-			FromToken:         in.Mint,
-			FromTokenAmount:   in.Info.Amount,
-			FromTokenDecimals: p.SplDecimalsMap[in.Mint],
-			ToToken:           out.Mint,
-			ToTokenAmount:     out.Info.Amount,
-			ToTokenDecimals:   p.SplDecimalsMap[out.Mint],
-		})
-	case *TransferCheck:
-		out := out.Data.(*TransferCheck)
-		p.Actions = append(p.Actions, CommonSwapAction{
-			BaseAction: BaseAction{
-				ProgramID:       progID.String(),
-				ProgramName:     string(ProgramName[progID]),
-				InstructionName: "Unknown Group Swap",
-				Signature:       p.TxInfo.Signatures[0].String(),
-			},
-			Who:               who,
-			FromToken:         in.Info.Mint,
-			FromTokenAmount:   cast.ToUint64(in.Info.TokenAmount.Amount),
-			FromTokenDecimals: p.SplDecimalsMap[in.Info.Mint],
-			ToToken:           out.Info.Mint,
-			ToTokenAmount:     cast.ToUint64(out.Info.TokenAmount.Amount),
-			ToTokenDecimals:   p.SplDecimalsMap[out.Info.Mint],
-		})
-	}
+	p.formatTransferData(in, out, progID, "Unknown Group Swap")
+}
 
+func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, instructionName ...string) {
+	who := p.AllAccountKeys[0].String()
+	var action Action
+	baseAction := BaseAction{
+		ProgramID:   progID.String(),
+		ProgramName: string(ProgramName[progID]),
+		Signature:   p.TxInfo.Signatures[0].String(),
+	}
+	if in.Action == "add_liquidity" {
+		baseAction.InstructionName = "AddLiquidity"
+		switch in := in.Data.(type) {
+		case *TransferData:
+			out := out.Data.(*TransferData)
+			action = CommonAddLiquidityAction{
+				BaseAction:     baseAction,
+				Who:            who,
+				Token1:         in.Mint,
+				Token1Amount:   cast.ToUint64(in.Info.Amount),
+				Token1Decimals: p.SplDecimalsMap[in.Mint],
+				Token2:         out.Mint,
+				Token2Amount:   cast.ToUint64(out.Info.Amount),
+				Token2Decimals: p.SplDecimalsMap[out.Mint],
+			}
+
+		case *TransferCheck:
+			out := out.Data.(*TransferCheck)
+			action = CommonAddLiquidityAction{
+				BaseAction:     baseAction,
+				Who:            who,
+				Token1:         in.Info.Mint,
+				Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
+				Token1Decimals: p.SplDecimalsMap[in.Info.Mint],
+				Token2:         out.Info.Mint,
+				Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
+				Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
+			}
+		}
+
+	} else if in.Action == "remove_liquidity" {
+		baseAction.InstructionName = "RemoveLiquidity"
+		switch in := in.Data.(type) {
+		case *TransferData:
+			out := out.Data.(*TransferData)
+			action = CommonRemoveLiquidityAction{
+				BaseAction:     baseAction,
+				Who:            who,
+				Token1:         in.Mint,
+				Token1Amount:   cast.ToUint64(in.Info.Amount),
+				Token1Decimals: p.SplDecimalsMap[in.Mint],
+				Token2:         out.Mint,
+				Token2Amount:   cast.ToUint64(out.Info.Amount),
+				Token2Decimals: p.SplDecimalsMap[out.Mint],
+			}
+
+		case *TransferCheck:
+			out := out.Data.(*TransferCheck)
+			action = CommonRemoveLiquidityAction{
+				BaseAction:     baseAction,
+				Who:            who,
+				Token1:         in.Info.Mint,
+				Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
+				Token1Decimals: p.SplDecimalsMap[in.Info.Mint],
+				Token2:         out.Info.Mint,
+				Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
+				Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
+			}
+		}
+
+	} else if in == out {
+		p.Actions = append(p.Actions, NewCommonDataAction(progID, p.TxInfo.Signatures[0].String(), in.Data))
+		return
+	} else {
+		baseAction.InstructionName = "Swap"
+		if len(instructionName) > 0 {
+			baseAction.InstructionName = instructionName[0]
+		}
+		switch in := in.Data.(type) {
+		case *TransferData:
+			out := out.Data.(*TransferData)
+			action = CommonSwapAction{
+				BaseAction:        baseAction,
+				Who:               who,
+				FromToken:         in.Mint,
+				FromTokenAmount:   in.Info.Amount,
+				FromTokenDecimals: p.SplDecimalsMap[in.Mint],
+				ToToken:           out.Mint,
+				ToTokenAmount:     out.Info.Amount,
+				ToTokenDecimals:   p.SplDecimalsMap[out.Mint],
+			}
+
+		case *TransferCheck:
+			out := out.Data.(*TransferCheck)
+			action = CommonSwapAction{
+				BaseAction:        baseAction,
+				Who:               who,
+				FromToken:         in.Info.Mint,
+				FromTokenAmount:   cast.ToUint64(in.Info.TokenAmount.Amount),
+				FromTokenDecimals: p.SplDecimalsMap[in.Info.Mint],
+				ToToken:           out.Info.Mint,
+				ToTokenAmount:     cast.ToUint64(out.Info.TokenAmount.Amount),
+				ToTokenDecimals:   p.SplDecimalsMap[out.Info.Mint],
+			}
+		}
+	}
+	p.Actions = append(p.Actions, action)
 }

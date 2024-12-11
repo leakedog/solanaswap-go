@@ -2,6 +2,7 @@ package solanaswapgo
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
@@ -98,6 +99,20 @@ func (p *Parser) isOrcaRemoveLiquidityEventInstruction(inst solana.CompiledInstr
 	}
 
 	return bytes.Equal(decodedBytes[:8], OrcaRemoveLiquidityEventDiscriminator[:])
+}
+
+var MeteoraRemoveLiquidityEventDiscriminator = [8]byte{26, 82, 102, 152, 240, 74, 105, 26}
+
+func (p *Parser) isMeteoraRemoveLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(METEORA_PROGRAM_ID) || len(inst.Data) < 8 {
+		return false
+	}
+	decodedBytes, err := base58.Decode(inst.Data.String())
+	if err != nil {
+		return false
+	}
+	fmt.Println(decodedBytes[:8])
+	return bytes.Equal(decodedBytes[:8], MeteoraRemoveLiquidityEventDiscriminator[:])
 }
 
 func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {
