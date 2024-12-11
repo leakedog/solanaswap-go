@@ -11,12 +11,14 @@ import (
 )
 
 type Parser struct {
-	tx              *rpc.GetTransactionResult
-	txInfo          *solana.Transaction
-	allAccountKeys  solana.PublicKeySlice
-	splTokenInfoMap map[string]TokenInfo // map[authority]TokenInfo
-	splDecimalsMap  map[string]uint8     // map[mint]decimals
+	Tx              *rpc.GetTransactionResult
+	TxInfo          *solana.Transaction
+	AllAccountKeys  solana.PublicKeySlice
+	SplTokenInfoMap map[string]TokenInfo // map[authority]TokenInfo
+	SplDecimalsMap  map[string]uint8     // map[mint]decimals
 	Log             *logrus.Logger
+	Actions         []Action
+	SwapData        []SwapData
 }
 
 func NewTransactionParser(tx *rpc.GetTransactionResult) (*Parser, error) {
@@ -36,9 +38,9 @@ func NewTransactionParser(tx *rpc.GetTransactionResult) (*Parser, error) {
 	})
 
 	parser := &Parser{
-		tx:             tx,
-		txInfo:         txInfo,
-		allAccountKeys: allAccountKeys,
+		Tx:             tx,
+		TxInfo:         txInfo,
+		AllAccountKeys: allAccountKeys,
 		Log:            log,
 	}
 
@@ -70,15 +72,15 @@ func NewBlockTransactionParser(tx rpc.TransactionWithMeta) (*Parser, error) {
 	})
 
 	parser := &Parser{
-		tx: &rpc.GetTransactionResult{
+		Tx: &rpc.GetTransactionResult{
 			Slot:      tx.Slot,
 			BlockTime: tx.BlockTime,
 			// Transaction: tx.Transaction,
 			Meta:    tx.Meta,
 			Version: tx.Version,
 		},
-		txInfo:         txInfo,
-		allAccountKeys: allAccountKeys,
+		TxInfo:         txInfo,
+		AllAccountKeys: allAccountKeys,
 		Log:            log,
 	}
 
@@ -94,16 +96,17 @@ func NewBlockTransactionParser(tx rpc.TransactionWithMeta) (*Parser, error) {
 }
 
 type SwapData struct {
-	Type SwapType
-	Data interface{}
+	Type   SwapType
+	Action string
+	Data   interface{}
 }
 
 func (p *Parser) ParseTransaction() ([]SwapData, error) {
 	var parsedSwaps []SwapData
 
 	skip := false
-	for i, outerInstruction := range p.txInfo.Message.Instructions {
-		progID := p.allAccountKeys[outerInstruction.ProgramIDIndex]
+	for i, outerInstruction := range p.TxInfo.Message.Instructions {
+		progID := p.AllAccountKeys[outerInstruction.ProgramIDIndex]
 		switch {
 		case progID.Equals(JUPITER_PROGRAM_ID):
 			skip = true
@@ -125,8 +128,8 @@ func (p *Parser) ParseTransaction() ([]SwapData, error) {
 		return parsedSwaps, nil
 	}
 
-	for i, outerInstruction := range p.txInfo.Message.Instructions {
-		progID := p.allAccountKeys[outerInstruction.ProgramIDIndex]
+	for i, outerInstruction := range p.TxInfo.Message.Instructions {
+		progID := p.AllAccountKeys[outerInstruction.ProgramIDIndex]
 		switch {
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CPMM_PROGRAM_ID) ||
@@ -135,7 +138,7 @@ func (p *Parser) ParseTransaction() ([]SwapData, error) {
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
 			parsedSwaps = append(parsedSwaps, p.processRaydSwaps(i)...)
 		case progID.Equals(OKX_PROGRAM_ID):
-			for _, v := range p.allAccountKeys {
+			for _, v := range p.AllAccountKeys {
 				if v.Equals(RAYDIUM_V4_PROGRAM_ID) {
 					parsedSwaps = append(parsedSwaps, p.processRaydSwaps(i)...)
 					break
@@ -176,13 +179,13 @@ func (p *Parser) ProcessSwapData(swapDatas []SwapData) (*SwapInfo, error) {
 	// if err != nil {
 	// 	return nil, fmt.Errorf("failed to get transaction: %w", err)
 	// }
-	txInfo := p.txInfo
+	txInfo := p.TxInfo
 
 	swapInfo := &SwapInfo{
 		Signers:    txInfo.Message.Signers(),
 		Signatures: txInfo.Signatures,
-		Timestamp:  p.tx.BlockTime.Time(),
-		Slot:       p.tx.Slot,
+		Timestamp:  p.Tx.BlockTime.Time(),
+		Slot:       p.Tx.Slot,
 	}
 
 	for i, swapData := range swapDatas {
@@ -205,11 +208,11 @@ func (p *Parser) ProcessSwapData(swapDatas []SwapData) (*SwapInfo, error) {
 				swapInfo.TokenInDecimals = 9
 				swapInfo.TokenOutMint = swapData.Data.(*PumpfunTradeEvent).Mint
 				swapInfo.TokenOutAmount = swapData.Data.(*PumpfunTradeEvent).TokenAmount
-				swapInfo.TokenOutDecimals = p.splDecimalsMap[swapInfo.TokenOutMint.String()]
+				swapInfo.TokenOutDecimals = p.SplDecimalsMap[swapInfo.TokenOutMint.String()]
 			} else {
 				swapInfo.TokenInMint = swapData.Data.(*PumpfunTradeEvent).Mint
 				swapInfo.TokenInAmount = swapData.Data.(*PumpfunTradeEvent).TokenAmount
-				swapInfo.TokenInDecimals = p.splDecimalsMap[swapInfo.TokenInMint.String()]
+				swapInfo.TokenInDecimals = p.SplDecimalsMap[swapInfo.TokenInMint.String()]
 				swapInfo.TokenOutMint = NATIVE_SOL_MINT_PROGRAM_ID // TokenOut info is always SOL for Pumpfun
 				swapInfo.TokenOutAmount = swapData.Data.(*PumpfunTradeEvent).SolAmount
 				swapInfo.TokenOutDecimals = 9
@@ -314,7 +317,7 @@ func (p *Parser) processTradingBotSwaps(instructionIndex int) []SwapData {
 
 	// check program IDs of inner instructions to determine swap type
 	for _, inner := range innerInstructions {
-		progID := p.allAccountKeys[inner.ProgramIDIndex]
+		progID := p.AllAccountKeys[inner.ProgramIDIndex]
 
 		switch {
 		case (progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
@@ -353,11 +356,11 @@ func (p *Parser) processTradingBotSwaps(instructionIndex int) []SwapData {
 
 // helper function to get inner instructions for a given instruction index
 func (p *Parser) getInnerInstructions(index int) []solana.CompiledInstruction {
-	if p.tx.Meta == nil || p.tx.Meta.InnerInstructions == nil {
+	if p.Tx.Meta == nil || p.Tx.Meta.InnerInstructions == nil {
 		return nil
 	}
 
-	for _, inner := range p.tx.Meta.InnerInstructions {
+	for _, inner := range p.Tx.Meta.InnerInstructions {
 		if inner.Index == uint16(index) {
 			return inner.Instructions
 		}

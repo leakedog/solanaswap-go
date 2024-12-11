@@ -33,7 +33,7 @@ var (
 func (p *Parser) processMoonshotSwaps() []SwapData {
 	var swaps []SwapData
 
-	for _, instruction := range p.txInfo.Message.Instructions {
+	for _, instruction := range p.TxInfo.Message.Instructions {
 		if p.isMoonshotTrade(instruction) {
 			swapData, err := p.parseMoonshotTradeInstruction(instruction)
 			if err != nil {
@@ -48,7 +48,7 @@ func (p *Parser) processMoonshotSwaps() []SwapData {
 
 // isMoonshotTrade checks if the instruction is a Moonshot trade
 func (p *Parser) isMoonshotTrade(instruction solana.CompiledInstruction) bool {
-	return p.txInfo.Message.AccountKeys[instruction.ProgramIDIndex].Equals(MOONSHOT_PROGRAM_ID) && len(instruction.Data) == 33 && len(instruction.Accounts) == 11
+	return p.TxInfo.Message.AccountKeys[instruction.ProgramIDIndex].Equals(MOONSHOT_PROGRAM_ID) && len(instruction.Data) == 33 && len(instruction.Accounts) == 11
 }
 
 // parseMoonshotTradeInstruction parses a Moonshot trade instruction
@@ -70,7 +70,7 @@ func (p *Parser) parseMoonshotTradeInstruction(instruction solana.CompiledInstru
 		return nil, fmt.Errorf("unknown moonshot trade instruction")
 	}
 
-	moonshotTokenMint := p.txInfo.Message.AccountKeys[instruction.Accounts[6]]
+	moonshotTokenMint := p.TxInfo.Message.AccountKeys[instruction.Accounts[6]]
 
 	moonshotTokenBalanceChanges, err := p.getTokenBalanceChanges(moonshotTokenMint)
 	if err != nil {
@@ -99,20 +99,20 @@ func (p *Parser) parseMoonshotTradeInstruction(instruction solana.CompiledInstru
 func (p *Parser) getTokenBalanceChanges(mint solana.PublicKey) (int64, error) {
 	if mint == NATIVE_SOL_MINT_PROGRAM_ID {
 		// For native SOL, we'll use the first account (index 0) which is typically the fee payer/signer
-		if len(p.tx.Meta.PostBalances) == 0 || len(p.tx.Meta.PreBalances) == 0 {
+		if len(p.Tx.Meta.PostBalances) == 0 || len(p.Tx.Meta.PreBalances) == 0 {
 			return 0, fmt.Errorf("insufficient balance information for SOL")
 		}
-		change := int64(p.tx.Meta.PostBalances[0]) - int64(p.tx.Meta.PreBalances[0])
+		change := int64(p.Tx.Meta.PostBalances[0]) - int64(p.Tx.Meta.PreBalances[0])
 		return change, nil
 	}
 
 	// Get the signer's public key (assuming it's the first account in the transaction)
-	signer := p.txInfo.Message.AccountKeys[0]
+	signer := p.TxInfo.Message.AccountKeys[0]
 
 	var preAmount, postAmount int64
 	var balanceFound bool
 
-	for _, preBalance := range p.tx.Meta.PreTokenBalances {
+	for _, preBalance := range p.Tx.Meta.PreTokenBalances {
 		if preBalance.Mint.Equals(mint) && preBalance.Owner.Equals(signer) {
 			preAmount, _ = strconv.ParseInt(preBalance.UiTokenAmount.Amount, 10, 64)
 			balanceFound = true
@@ -120,7 +120,7 @@ func (p *Parser) getTokenBalanceChanges(mint solana.PublicKey) (int64, error) {
 		}
 	}
 
-	for _, postBalance := range p.tx.Meta.PostTokenBalances {
+	for _, postBalance := range p.Tx.Meta.PostTokenBalances {
 		if postBalance.Mint.Equals(mint) && postBalance.Owner.Equals(signer) {
 			postAmount, _ = strconv.ParseInt(postBalance.UiTokenAmount.Amount, 10, 64)
 			balanceFound = true

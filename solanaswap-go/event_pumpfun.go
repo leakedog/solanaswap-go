@@ -35,18 +35,28 @@ type PumpfunCreateEvent struct {
 
 func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
-	for _, innerInstructionSet := range p.tx.Meta.InnerInstructions {
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
-				if p.isPumpFunTradeEventInstruction(innerInstruction) {
-					eventData, err := p.parsePumpfunTradeEventInstruction(innerInstruction)
+				switch {
+				case p.isPumpFunTradeEventInstruction(innerInstruction):
+					trade, err := p.parsePumpfunTradeEventInstruction(innerInstruction)
 					if err != nil {
 						p.Log.Errorf("error processing Pumpfun trade event: %s", err)
 					}
-					if eventData != nil {
-						swaps = append(swaps, SwapData{Type: PUMP_FUN, Data: eventData})
+					if trade != nil {
+						swaps = append(swaps, SwapData{Type: PUMP_FUN, Data: trade})
+					}
+				case p.isPumpFunCreateEventInstruction(innerInstruction):
+					create, err := p.parsePumpfunCreateEventInstruction(innerInstruction)
+					if err != nil {
+						p.Log.Errorf("error processing Pumpfun create event: %s", err)
+					}
+					if create != nil {
+						swaps = append(swaps, SwapData{Type: PUMP_FUN, Data: create})
 					}
 				}
+
 			}
 		}
 	}
@@ -71,4 +81,23 @@ func handlePumpfunTradeEvent(decoder *ag_binary.Decoder) (*PumpfunTradeEvent, er
 	}
 
 	return &trade, nil
+}
+
+func (p *Parser) parsePumpfunCreateEventInstruction(instruction solana.CompiledInstruction) (*PumpfunCreateEvent, error) {
+	decodedBytes, err := base58.Decode(instruction.Data.String())
+	if err != nil {
+		return nil, fmt.Errorf("error decoding instruction data: %s", err)
+	}
+	decoder := ag_binary.NewBorshDecoder(decodedBytes[16:])
+
+	return handlePumpfunCreateEvent(decoder)
+}
+
+func handlePumpfunCreateEvent(decoder *ag_binary.Decoder) (*PumpfunCreateEvent, error) {
+	var create PumpfunCreateEvent
+	if err := decoder.Decode(&create); err != nil {
+		return nil, fmt.Errorf("error unmarshaling CreateEvent: %s", err)
+	}
+
+	return &create, nil
 }

@@ -27,7 +27,7 @@ type TransferCheck struct {
 
 func (p *Parser) processMeteoraSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
-	for _, innerInstructionSet := range p.tx.Meta.InnerInstructions {
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
@@ -56,13 +56,13 @@ func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *Transfe
 		Type: "transferChecked",
 	}
 
-	transferData.Info.Source = p.allAccountKeys[instr.Accounts[0]].String()
-	transferData.Info.Destination = p.allAccountKeys[instr.Accounts[2]].String()
-	transferData.Info.Mint = p.allAccountKeys[instr.Accounts[1]].String()
-	transferData.Info.Authority = p.allAccountKeys[instr.Accounts[3]].String()
+	transferData.Info.Source = p.AllAccountKeys[instr.Accounts[0]].String()
+	transferData.Info.Destination = p.AllAccountKeys[instr.Accounts[2]].String()
+	transferData.Info.Mint = p.AllAccountKeys[instr.Accounts[1]].String()
+	transferData.Info.Authority = p.AllAccountKeys[instr.Accounts[3]].String()
 
 	transferData.Info.TokenAmount.Amount = fmt.Sprintf("%d", amount)
-	transferData.Info.TokenAmount.Decimals = p.splDecimalsMap[transferData.Info.Mint]
+	transferData.Info.TokenAmount.Decimals = p.SplDecimalsMap[transferData.Info.Mint]
 	uiAmount := float64(amount) / math.Pow10(int(transferData.Info.TokenAmount.Decimals))
 	transferData.Info.TokenAmount.UIAmount = uiAmount
 	transferData.Info.TokenAmount.UIAmountString = strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.9f", uiAmount), "0"), ".")

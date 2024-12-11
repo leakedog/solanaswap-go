@@ -9,7 +9,7 @@ import (
 
 // isTransfer checks if the instruction is a token transfer (Raydium, Orca)
 func (p *Parser) isTransfer(instr solana.CompiledInstruction) bool {
-	progID := p.allAccountKeys[instr.ProgramIDIndex]
+	progID := p.AllAccountKeys[instr.ProgramIDIndex]
 
 	if !progID.Equals(solana.TokenProgramID) {
 		return false
@@ -24,7 +24,7 @@ func (p *Parser) isTransfer(instr solana.CompiledInstruction) bool {
 	}
 
 	for i := 0; i < 3; i++ {
-		if int(instr.Accounts[i]) >= len(p.allAccountKeys) {
+		if int(instr.Accounts[i]) >= len(p.AllAccountKeys) {
 			return false
 		}
 	}
@@ -34,7 +34,7 @@ func (p *Parser) isTransfer(instr solana.CompiledInstruction) bool {
 
 // isTransferCheck checks if the instruction is a token transfer check (Meteora)
 func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
-	progID := p.allAccountKeys[instr.ProgramIDIndex]
+	progID := p.AllAccountKeys[instr.ProgramIDIndex]
 
 	if !progID.Equals(solana.TokenProgramID) && !progID.Equals(solana.Token2022ProgramID) {
 		return false
@@ -49,7 +49,7 @@ func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
 	}
 
 	for i := 0; i < 4; i++ {
-		if int(instr.Accounts[i]) >= len(p.allAccountKeys) {
+		if int(instr.Accounts[i]) >= len(p.AllAccountKeys) {
 			return false
 		}
 	}
@@ -57,8 +57,36 @@ func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
 	return true
 }
 
+var RaydiumSwapEventDiscriminator = CalculateDiscriminator("global:swap")
+
+func (p *Parser) isRaydiumSwapEventInstruction(inst solana.CompiledInstruction) bool {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_V4_PROGRAM_ID) || len(inst.Data) < 16 {
+		return false
+	}
+
+	decodedBytes, err := base58.Decode(inst.Data.String())
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(decodedBytes[:8], RaydiumSwapEventDiscriminator[:])
+}
+
+var RaydiumAddLiquidityEventDiscriminator = [8]byte{133, 29, 89, 223, 69, 238, 176, 10}
+
+func (p *Parser) isRaydiumAddLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) || len(inst.Data) < 16 {
+		return false
+	}
+
+	decodedBytes, err := base58.Decode(inst.Data.String())
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(decodedBytes[:8], RaydiumAddLiquidityEventDiscriminator[:])
+}
+
 func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
 	decodedBytes, err := base58.Decode(inst.Data.String())
@@ -68,8 +96,19 @@ func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction)
 	return bytes.Equal(decodedBytes[:16], PumpfunTradeEventDiscriminator[:])
 }
 
+func (p *Parser) isPumpFunCreateEventInstruction(inst solana.CompiledInstruction) bool {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
+		return false
+	}
+	decodedBytes, err := base58.Decode(inst.Data.String())
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(decodedBytes[:16], PumpfunCreateEventDiscriminator[:])
+}
+
 func (p *Parser) isJupiterRouteEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(JUPITER_PROGRAM_ID) || len(inst.Data) < 16 {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(JUPITER_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
 	decodedBytes, err := base58.Decode(inst.Data.String())

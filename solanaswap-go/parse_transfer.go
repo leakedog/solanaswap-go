@@ -27,19 +27,29 @@ type TokenInfo struct {
 
 func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
-	for _, innerInstructionSet := range p.tx.Meta.InnerInstructions {
+
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
 				case p.isTransfer(innerInstruction):
 					transfer := p.processTransfer(innerInstruction)
 					if transfer != nil {
-						swaps = append(swaps, SwapData{Type: RAYDIUM, Data: transfer})
+						swapData := SwapData{Type: RAYDIUM, Data: transfer}
+						if p.isRaydiumSwapEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
+							swapData.Action = "swap"
+						}
+						swaps = append(swaps, swapData)
 					}
+
 				case p.isTransferCheck(innerInstruction):
 					transfer := p.processTransferCheck(innerInstruction)
 					if transfer != nil {
-						swaps = append(swaps, SwapData{Type: RAYDIUM, Data: transfer})
+						swapData := SwapData{Type: RAYDIUM, Data: transfer}
+						if p.isRaydiumAddLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
+							swapData.Action = "add_liquidity"
+						}
+						swaps = append(swaps, swapData)
 					}
 				}
 			}
@@ -50,13 +60,40 @@ func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 
 func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
-	for _, innerInstructionSet := range p.tx.Meta.InnerInstructions {
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isTransfer(innerInstruction) {
 					transfer := p.processTransfer(innerInstruction)
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: ORCA, Data: transfer})
+					}
+				}
+			}
+		}
+	}
+	return swaps
+}
+
+func (p *Parser) processOkxSwaps(instructionIndex int) []SwapData {
+	var swaps []SwapData
+
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
+		if innerInstructionSet.Index == uint16(instructionIndex) {
+			for _, innerInstruction := range innerInstructionSet.Instructions {
+				switch {
+				case p.isTransfer(innerInstruction):
+					transfer := p.processTransfer(innerInstruction)
+					if transfer != nil {
+						swapData := SwapData{Type: OKX, Data: transfer}
+						swaps = append(swaps, swapData)
+					}
+
+				case p.isTransferCheck(innerInstruction):
+					transfer := p.processTransferCheck(innerInstruction)
+					if transfer != nil {
+						swapData := SwapData{Type: OKX, Data: transfer}
+						swaps = append(swaps, swapData)
 					}
 				}
 			}
@@ -72,13 +109,13 @@ func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferData
 	transferData := &TransferData{
 		Info: TransferInfo{
 			Amount:      amount,
-			Source:      p.allAccountKeys[instr.Accounts[0]].String(),
-			Destination: p.allAccountKeys[instr.Accounts[1]].String(),
-			Authority:   p.allAccountKeys[instr.Accounts[2]].String(),
+			Source:      p.AllAccountKeys[instr.Accounts[0]].String(),
+			Destination: p.AllAccountKeys[instr.Accounts[1]].String(),
+			Authority:   p.AllAccountKeys[instr.Accounts[2]].String(),
 		},
 		Type:     "transfer",
-		Mint:     p.splTokenInfoMap[p.allAccountKeys[instr.Accounts[1]].String()].Mint,
-		Decimals: p.splTokenInfoMap[p.allAccountKeys[instr.Accounts[1]].String()].Decimals,
+		Mint:     p.SplTokenInfoMap[p.AllAccountKeys[instr.Accounts[1]].String()].Mint,
+		Decimals: p.SplTokenInfoMap[p.AllAccountKeys[instr.Accounts[1]].String()].Decimals,
 	}
 
 	if transferData.Mint == "" {
@@ -91,9 +128,9 @@ func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferData
 func (p *Parser) extractSPLTokenInfo() error {
 	splTokenAddresses := make(map[string]TokenInfo)
 
-	for _, accountInfo := range p.tx.Meta.PostTokenBalances {
+	for _, accountInfo := range p.Tx.Meta.PostTokenBalances {
 		if !accountInfo.Mint.IsZero() {
-			accountKey := p.allAccountKeys[accountInfo.AccountIndex].String()
+			accountKey := p.AllAccountKeys[accountInfo.AccountIndex].String()
 			splTokenAddresses[accountKey] = TokenInfo{
 				Mint:     accountInfo.Mint.String(),
 				Decimals: accountInfo.UiTokenAmount.Decimals,
@@ -102,7 +139,7 @@ func (p *Parser) extractSPLTokenInfo() error {
 	}
 
 	processInstruction := func(instr solana.CompiledInstruction) {
-		if !p.allAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
+		if !p.AllAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
 			return
 		}
 
@@ -114,8 +151,8 @@ func (p *Parser) extractSPLTokenInfo() error {
 			return
 		}
 
-		source := p.allAccountKeys[instr.Accounts[0]].String()
-		destination := p.allAccountKeys[instr.Accounts[1]].String()
+		source := p.AllAccountKeys[instr.Accounts[0]].String()
+		destination := p.AllAccountKeys[instr.Accounts[1]].String()
 
 		if _, exists := splTokenAddresses[source]; !exists {
 			splTokenAddresses[source] = TokenInfo{Mint: "", Decimals: 0}
@@ -125,10 +162,10 @@ func (p *Parser) extractSPLTokenInfo() error {
 		}
 	}
 
-	for _, instr := range p.txInfo.Message.Instructions {
+	for _, instr := range p.TxInfo.Message.Instructions {
 		processInstruction(instr)
 	}
-	for _, innerSet := range p.tx.Meta.InnerInstructions {
+	for _, innerSet := range p.Tx.Meta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {
 			processInstruction(instr)
 		}
@@ -143,7 +180,7 @@ func (p *Parser) extractSPLTokenInfo() error {
 		}
 	}
 
-	p.splTokenInfoMap = splTokenAddresses
+	p.SplTokenInfoMap = splTokenAddresses
 
 	return nil
 }

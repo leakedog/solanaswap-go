@@ -27,7 +27,7 @@ var JupiterRouteEventDiscriminator = [16]byte{228, 69, 165, 46, 81, 203, 154, 29
 
 func (p *Parser) processJupiterSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
-	for _, innerInstructionSet := range p.tx.Meta.InnerInstructions {
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isJupiterRouteEventInstruction(innerInstruction) {
@@ -47,7 +47,7 @@ func (p *Parser) processJupiterSwaps(instructionIndex int) []SwapData {
 
 // containsDCAProgram checks if the transaction contains the Jupiter DCA program.
 func (p *Parser) containsDCAProgram() bool {
-	for _, accountKey := range p.allAccountKeys {
+	for _, accountKey := range p.AllAccountKeys {
 		if accountKey.Equals(JUPITER_DCA_PROGRAM_ID) {
 			return true
 		}
@@ -68,12 +68,12 @@ func (p *Parser) parseJupiterRouteEventInstruction(instruction solana.CompiledIn
 		return nil, fmt.Errorf("error decoding jupiter swap event: %s", err)
 	}
 
-	inputMintDecimals, exists := p.splDecimalsMap[jupSwapEvent.InputMint.String()]
+	inputMintDecimals, exists := p.SplDecimalsMap[jupSwapEvent.InputMint.String()]
 	if !exists {
 		inputMintDecimals = 0
 	}
 
-	outputMintDecimals, exists := p.splDecimalsMap[jupSwapEvent.OutputMint.String()]
+	outputMintDecimals, exists := p.SplDecimalsMap[jupSwapEvent.OutputMint.String()]
 	if !exists {
 		outputMintDecimals = 0
 	}
@@ -96,7 +96,7 @@ func handleJupiterRouteEvent(decoder *ag_binary.Decoder) (*JupiterSwapEvent, err
 func (p *Parser) extractSPLDecimals() error {
 	mintToDecimals := make(map[string]uint8)
 
-	for _, accountInfo := range p.tx.Meta.PostTokenBalances {
+	for _, accountInfo := range p.Tx.Meta.PostTokenBalances {
 		if !accountInfo.Mint.IsZero() {
 			mintAddress := accountInfo.Mint.String()
 			mintToDecimals[mintAddress] = uint8(accountInfo.UiTokenAmount.Decimals)
@@ -104,7 +104,7 @@ func (p *Parser) extractSPLDecimals() error {
 	}
 
 	processInstruction := func(instr solana.CompiledInstruction) {
-		if !p.allAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
+		if !p.AllAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
 			return
 		}
 
@@ -116,16 +116,16 @@ func (p *Parser) extractSPLDecimals() error {
 			return
 		}
 
-		mint := p.allAccountKeys[instr.Accounts[1]].String()
+		mint := p.AllAccountKeys[instr.Accounts[1]].String()
 		if _, exists := mintToDecimals[mint]; !exists {
 			mintToDecimals[mint] = 0
 		}
 	}
 
-	for _, instr := range p.txInfo.Message.Instructions {
+	for _, instr := range p.TxInfo.Message.Instructions {
 		processInstruction(instr)
 	}
-	for _, innerSet := range p.tx.Meta.InnerInstructions {
+	for _, innerSet := range p.Tx.Meta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {
 			processInstruction(instr)
 		}
@@ -136,7 +136,7 @@ func (p *Parser) extractSPLDecimals() error {
 		mintToDecimals[NATIVE_SOL_MINT_PROGRAM_ID.String()] = 9 // Native SOL has 9 decimal places
 	}
 
-	p.splDecimalsMap = mintToDecimals
+	p.SplDecimalsMap = mintToDecimals
 
 	return nil
 }
@@ -214,8 +214,8 @@ func (p *Parser) convertToSwapInfo(intermediateInfo *jupiterSwapInfo) (*SwapInfo
 
 	swapInfo := &SwapInfo{
 		AMMs:      intermediateInfo.AMMs,
-		Slot:      p.tx.Slot,
-		Timestamp: p.tx.BlockTime.Time(),
+		Slot:      p.Tx.Slot,
+		Timestamp: p.Tx.BlockTime.Time(),
 	}
 
 	for mint, amount := range intermediateInfo.TokenIn {
@@ -233,9 +233,9 @@ func (p *Parser) convertToSwapInfo(intermediateInfo *jupiterSwapInfo) (*SwapInfo
 	// set signers if it contains DCA program
 	var signer solana.PublicKey
 	if p.containsDCAProgram() {
-		signer = p.allAccountKeys[2]
+		signer = p.AllAccountKeys[2]
 	} else {
-		signer = p.allAccountKeys[0]
+		signer = p.AllAccountKeys[0]
 	}
 	swapInfo.Signers = append(swapInfo.Signers, signer)
 
