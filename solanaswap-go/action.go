@@ -90,3 +90,14 @@ type CommonAddLiquidityAction struct {
 	Token2Amount   uint64 `json:"token2Amount"`
 	Token2Decimals uint8  `json:"token2Decimals"`
 }
+
+type CommonRemoveLiquidityAction struct {
+	BaseAction
+	Who            string `json:"who"`
+	Token1         string `json:"token1"`
+	Token1Amount   uint64 `json:"token1Amount"`
+	Token1Decimals uint8  `json:"token1Decimals"`
+	Token2         string `json:"token2"`
+	Token2Amount   uint64 `json:"token2Amount"`
+	Token2Decimals uint8  `json:"token2Decimals"`
+}

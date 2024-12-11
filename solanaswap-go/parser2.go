@@ -44,8 +44,8 @@ func (p *Parser) NewTxParser() {
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
 			p.programParseTo(p.processRaydSwaps(i), progID)
 		case progID.Equals(OKX_PROGRAM_ID):
-			// p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
-			p.programParseTo(p.processOkxSwaps(i), progID)
+			p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
+			// p.programParseTo(p.processOkxSwaps(i), progID)
 		case progID.Equals(ORCA_PROGRAM_ID):
 			p.programParseTo(p.processOrcaSwaps(i), progID)
 		case progID.Equals(METEORA_PROGRAM_ID) || progID.Equals(METEORA_POOLS_PROGRAM_ID):
@@ -98,51 +98,20 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 		})
 
 	case PUMP_FUN_PROGRAM_ID:
-		switch v := datas[0].Data.(type) {
-		case *PumpfunCreateEvent:
-			p.Actions = append(p.Actions, CommonDataAction{
-				BaseAction: BaseAction{
-					ProgramID:       progID.String(),
-					ProgramName:     "PumpFun",
-					InstructionName: "Create",
-					Signature:       p.TxInfo.Signatures[0].String(),
-				},
-				Data: v,
-			})
-		case *PumpfunTradeEvent:
-			action := CommonSwapAction{
-				BaseAction: BaseAction{
-					ProgramID:       progID.String(),
-					ProgramName:     "PumpFun",
-					InstructionName: "Swap",
-					Signature:       p.TxInfo.Signatures[0].String(),
-				},
-				Who: p.AllAccountKeys[0].String(),
-			}
-			if v.IsBuy {
-				action.FromToken = solana.SolMint.String()
-				action.FromTokenAmount = v.SolAmount
-				action.FromTokenDecimals = 9
-				action.ToToken = v.Mint.String()
-				action.ToTokenAmount = v.TokenAmount
-				action.ToTokenDecimals = p.SplDecimalsMap[v.Mint.String()]
-			} else {
-				action.FromToken = v.Mint.String()
-				action.FromTokenAmount = v.TokenAmount
-				action.FromTokenDecimals = p.SplDecimalsMap[v.Mint.String()]
-				action.ToToken = solana.SolMint.String()
-				action.ToTokenAmount = v.SolAmount
-				action.ToTokenDecimals = 9
-			}
-			p.Actions = append(p.Actions, action)
-		}
+		p.parsePumpfunSwapData(progID, datas)
 	case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 		p.parseOneTransferSwapData(progID, datas)
 	case METEORA_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID:
 		p.parseGroupTransferSwapData(progID, datas)
-	case RAYDIUM_V4_PROGRAM_ID, OKX_PROGRAM_ID, ORCA_PROGRAM_ID, BANANA_GUN_PROGRAM_ID, MAESTRO_PROGRAM_ID,
+	case RAYDIUM_V4_PROGRAM_ID, ORCA_PROGRAM_ID, BANANA_GUN_PROGRAM_ID, MAESTRO_PROGRAM_ID,
 		METEORA_POOLS_PROGRAM_ID:
 		p.parseGroupTransferSwapData(progID, datas)
+	case OKX_PROGRAM_ID:
+		if datas[0].Type == PUMP_FUN {
+			p.parsePumpfunSwapData(progID, datas)
+		} else {
+			p.parseGroupTransferSwapData(progID, datas)
+		}
 	case MOONSHOT_PROGRAM_ID:
 		data := datas[0].Data.(*MoonshotTradeInstructionWithMint)
 		switch data.TradeType {
@@ -188,6 +157,50 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 
 }
 
+func (p *Parser) parsePumpfunSwapData(progID solana.PublicKey, swapDatas []SwapData) {
+	for _, data := range swapDatas {
+		switch v := data.Data.(type) {
+		case *PumpfunCreateEvent:
+			p.Actions = append(p.Actions, CommonDataAction{
+				BaseAction: BaseAction{
+					ProgramID:       progID.String(),
+					ProgramName:     "PumpFun",
+					InstructionName: "Create",
+					Signature:       p.TxInfo.Signatures[0].String(),
+				},
+				Data: v,
+			})
+		case *PumpfunTradeEvent:
+			action := CommonSwapAction{
+				BaseAction: BaseAction{
+					ProgramID:       progID.String(),
+					ProgramName:     "PumpFun",
+					InstructionName: "Swap",
+					Signature:       p.TxInfo.Signatures[0].String(),
+				},
+				Who: p.AllAccountKeys[0].String(),
+			}
+			if v.IsBuy {
+				action.FromToken = solana.SolMint.String()
+				action.FromTokenAmount = v.SolAmount
+				action.FromTokenDecimals = 9
+				action.ToToken = v.Mint.String()
+				action.ToTokenAmount = v.TokenAmount
+				action.ToTokenDecimals = p.SplDecimalsMap[v.Mint.String()]
+			} else {
+				action.FromToken = v.Mint.String()
+				action.FromTokenAmount = v.TokenAmount
+				action.FromTokenDecimals = p.SplDecimalsMap[v.Mint.String()]
+				action.ToToken = solana.SolMint.String()
+				action.ToTokenAmount = v.SolAmount
+				action.ToTokenDecimals = 9
+			}
+			p.Actions = append(p.Actions, action)
+		}
+	}
+
+}
+
 func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas []SwapData) {
 	var resultGroup [][2]SwapData
 	who := p.AllAccountKeys[0].String()
@@ -208,17 +221,19 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 		in := v[0]
 		out := v[1]
 		if reflect.TypeOf(in.Data) == reflect.TypeOf(out.Data) {
+			var action Action
+			baseAction := BaseAction{
+				ProgramID:   progID.String(),
+				ProgramName: string(ProgramName[progID]),
+				Signature:   p.TxInfo.Signatures[0].String(),
+			}
 			if in.Action == "add_liquidity" {
+				baseAction.InstructionName = "AddLiquidity"
 				switch in := in.Data.(type) {
 				case *TransferData:
 					out := out.Data.(*TransferData)
-					p.Actions = append(p.Actions, CommonAddLiquidityAction{
-						BaseAction: BaseAction{
-							ProgramID:       progID.String(),
-							ProgramName:     string(ProgramName[progID]),
-							InstructionName: "AddLiquidity",
-							Signature:       p.TxInfo.Signatures[0].String(),
-						},
+					action = CommonAddLiquidityAction{
+						BaseAction:     baseAction,
 						Who:            who,
 						Token1:         in.Mint,
 						Token1Amount:   cast.ToUint64(in.Info.Amount),
@@ -226,17 +241,12 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 						Token2:         out.Mint,
 						Token2Amount:   cast.ToUint64(out.Info.Amount),
 						Token2Decimals: p.SplDecimalsMap[out.Mint],
-					})
+					}
 
 				case *TransferCheck:
 					out := out.Data.(*TransferCheck)
-					p.Actions = append(p.Actions, CommonAddLiquidityAction{
-						BaseAction: BaseAction{
-							ProgramID:       progID.String(),
-							ProgramName:     string(ProgramName[progID]),
-							InstructionName: "AddLiquidity",
-							Signature:       p.TxInfo.Signatures[0].String(),
-						},
+					action = CommonAddLiquidityAction{
+						BaseAction:     baseAction,
 						Who:            who,
 						Token1:         in.Info.Mint,
 						Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
@@ -244,19 +254,46 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 						Token2:         out.Info.Mint,
 						Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
 						Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
-					})
+					}
 				}
-			} else {
+
+			} else if in.Action == "remove_liquidity" {
+				baseAction.InstructionName = "RemoveLiquidity"
 				switch in := in.Data.(type) {
 				case *TransferData:
 					out := out.Data.(*TransferData)
-					p.Actions = append(p.Actions, CommonSwapAction{
-						BaseAction: BaseAction{
-							ProgramID:       progID.String(),
-							ProgramName:     string(ProgramName[progID]),
-							InstructionName: "Swap",
-							Signature:       p.TxInfo.Signatures[0].String(),
-						},
+					action = CommonRemoveLiquidityAction{
+						BaseAction:     baseAction,
+						Who:            who,
+						Token1:         in.Mint,
+						Token1Amount:   cast.ToUint64(in.Info.Amount),
+						Token1Decimals: p.SplDecimalsMap[in.Mint],
+						Token2:         out.Mint,
+						Token2Amount:   cast.ToUint64(out.Info.Amount),
+						Token2Decimals: p.SplDecimalsMap[out.Mint],
+					}
+
+				case *TransferCheck:
+					out := out.Data.(*TransferCheck)
+					action = CommonRemoveLiquidityAction{
+						BaseAction:     baseAction,
+						Who:            who,
+						Token1:         in.Info.Mint,
+						Token1Amount:   cast.ToUint64(in.Info.TokenAmount.Amount),
+						Token1Decimals: p.SplDecimalsMap[in.Info.Mint],
+						Token2:         out.Info.Mint,
+						Token2Amount:   cast.ToUint64(out.Info.TokenAmount.Amount),
+						Token2Decimals: p.SplDecimalsMap[out.Info.Mint],
+					}
+				}
+
+			} else {
+				baseAction.InstructionName = "Swap"
+				switch in := in.Data.(type) {
+				case *TransferData:
+					out := out.Data.(*TransferData)
+					action = CommonSwapAction{
+						BaseAction:        baseAction,
 						Who:               who,
 						FromToken:         in.Mint,
 						FromTokenAmount:   in.Info.Amount,
@@ -264,17 +301,12 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 						ToToken:           out.Mint,
 						ToTokenAmount:     out.Info.Amount,
 						ToTokenDecimals:   p.SplDecimalsMap[out.Mint],
-					})
+					}
 
 				case *TransferCheck:
 					out := out.Data.(*TransferCheck)
-					p.Actions = append(p.Actions, CommonSwapAction{
-						BaseAction: BaseAction{
-							ProgramID:       progID.String(),
-							ProgramName:     string(ProgramName[progID]),
-							InstructionName: "Swap",
-							Signature:       p.TxInfo.Signatures[0].String(),
-						},
+					action = CommonSwapAction{
+						BaseAction:        baseAction,
 						Who:               who,
 						FromToken:         in.Info.Mint,
 						FromTokenAmount:   cast.ToUint64(in.Info.TokenAmount.Amount),
@@ -282,10 +314,11 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 						ToToken:           out.Info.Mint,
 						ToTokenAmount:     cast.ToUint64(out.Info.TokenAmount.Amount),
 						ToTokenDecimals:   p.SplDecimalsMap[out.Info.Mint],
-					})
+					}
 				}
 			}
 
+			p.Actions = append(p.Actions, action)
 		}
 	}
 

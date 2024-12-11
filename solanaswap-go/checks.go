@@ -60,7 +60,7 @@ func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
 var RaydiumSwapEventDiscriminator = CalculateDiscriminator("global:swap")
 
 func (p *Parser) isRaydiumSwapEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_V4_PROGRAM_ID) || len(inst.Data) < 16 {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_V4_PROGRAM_ID) || len(inst.Data) < 8 {
 		return false
 	}
 
@@ -74,7 +74,7 @@ func (p *Parser) isRaydiumSwapEventInstruction(inst solana.CompiledInstruction) 
 var RaydiumAddLiquidityEventDiscriminator = [8]byte{133, 29, 89, 223, 69, 238, 176, 10}
 
 func (p *Parser) isRaydiumAddLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) || len(inst.Data) < 16 {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) || len(inst.Data) < 8 {
 		return false
 	}
 
@@ -83,6 +83,21 @@ func (p *Parser) isRaydiumAddLiquidityEventInstruction(inst solana.CompiledInstr
 		return false
 	}
 	return bytes.Equal(decodedBytes[:8], RaydiumAddLiquidityEventDiscriminator[:])
+}
+
+var OrcaRemoveLiquidityEventDiscriminator = [8]byte{164, 152, 207, 99, 30, 186, 19, 182}
+
+func (p *Parser) isOrcaRemoveLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
+	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(ORCA_PROGRAM_ID) || len(inst.Data) < 8 {
+		return false
+	}
+
+	decodedBytes, err := base58.Decode(inst.Data.String())
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(decodedBytes[:8], OrcaRemoveLiquidityEventDiscriminator[:])
 }
 
 func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {

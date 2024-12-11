@@ -31,25 +31,36 @@ func (p *Parser) RaydiumInstruction(instruction solana.CompiledInstruction, prog
 }
 
 func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID solana.PublicKey, index int) []SwapData {
-	switch {
-	case p.isTransfer(instruction):
-		return p.processRaydSwaps(index)
-	default:
-		// fmt.Println("Jupiter Unknown discriminator", discriminator)
-		return []SwapData{
-			{
-				Type:   OKX,
-				Action: "Unknown",
-				Data: UnknownAction{
-					BaseAction: BaseAction{
-						ProgramID:       progID.String(),
-						ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
-						InstructionName: "Unknown",
-					},
-				},
-			},
+	var swaps []SwapData
+	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
+		if innerInstructionSet.Index == uint16(index) {
+			for _, innerInstruction := range innerInstructionSet.Instructions {
+				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
+
+				switch programId {
+				case RAYDIUM_V4_PROGRAM_ID:
+					return p.processRaydSwaps(index)
+				case PUMP_FUN_PROGRAM_ID:
+					return p.processPumpfunSwaps(index)
+				default:
+					swaps = append(swaps, []SwapData{
+						{
+							Type:   OKX,
+							Action: "Unknown",
+							Data: UnknownAction{
+								BaseAction: BaseAction{
+									ProgramID:       progID.String(),
+									ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
+									InstructionName: "Unknown",
+								},
+							},
+						},
+					}...)
+				}
+			}
 		}
 	}
+	return swaps
 }
 
 func (p *Parser) JupiterInstruction(instruction solana.CompiledInstruction, progID solana.PublicKey, index int) []SwapData {

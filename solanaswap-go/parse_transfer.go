@@ -66,7 +66,11 @@ func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
 				if p.isTransfer(innerInstruction) {
 					transfer := p.processTransfer(innerInstruction)
 					if transfer != nil {
-						swaps = append(swaps, SwapData{Type: ORCA, Data: transfer})
+						swapData := SwapData{Type: ORCA, Data: transfer}
+						if p.isOrcaRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
+							swapData.Action = "remove_liquidity"
+						}
+						swaps = append(swaps, swapData)
 					}
 				}
 			}
