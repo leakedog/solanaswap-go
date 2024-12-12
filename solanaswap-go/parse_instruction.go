@@ -36,12 +36,21 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 		if innerInstructionSet.Index == uint16(index) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
-
 				switch programId {
-				case RAYDIUM_V4_PROGRAM_ID:
+				case MOONSHOT_PROGRAM_ID:
+					return p.processMoonshotSwaps()
+				case RAYDIUM_V4_PROGRAM_ID,
+					RAYDIUM_CPMM_PROGRAM_ID,
+					RAYDIUM_AMM_PROGRAM_ID,
+					RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID,
+					solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 					return p.processRaydSwaps(index)
 				case PUMP_FUN_PROGRAM_ID:
 					return p.processPumpfunSwaps(index)
+				case ORCA_PROGRAM_ID:
+					return p.processOrcaSwaps(index)
+				case METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
+					return p.processMeteoraSwaps(index)
 				default:
 					swaps = append(swaps, []SwapData{
 						{

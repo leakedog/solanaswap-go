@@ -2,7 +2,6 @@ package solanaswapgo
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
@@ -111,7 +110,6 @@ func (p *Parser) isMeteoraRemoveLiquidityEventInstruction(inst solana.CompiledIn
 	if err != nil {
 		return false
 	}
-	fmt.Println(decodedBytes[:8])
 	return bytes.Equal(decodedBytes[:8], MeteoraRemoveLiquidityEventDiscriminator[:])
 }
 
