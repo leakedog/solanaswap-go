@@ -57,12 +57,16 @@ type CommonDataAction struct {
 	Data interface{}
 }
 
-func NewCommonDataAction(progID solana.PublicKey, signature string, data interface{}) CommonDataAction {
+func NewCommonDataAction(progID solana.PublicKey, signature string, data interface{}, instructionName ...string) CommonDataAction {
+	var instructionNameStr string
+	if len(instructionName) > 0 {
+		instructionNameStr = instructionName[0]
+	}
 	return CommonDataAction{
 		BaseAction{
 			ProgramID:       progID.String(),
 			ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
-			InstructionName: "",
+			InstructionName: instructionNameStr,
 			Signature:       signature,
 		},
 		data,

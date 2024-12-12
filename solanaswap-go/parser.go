@@ -136,18 +136,11 @@ func (p *Parser) ParseTransaction() ([]SwapData, error) {
 			progID.Equals(RAYDIUM_AMM_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
-			parsedSwaps = append(parsedSwaps, p.processRaydSwaps(i)...)
-		case progID.Equals(OKX_PROGRAM_ID):
-			for _, v := range p.AllAccountKeys {
-				if v.Equals(RAYDIUM_V4_PROGRAM_ID) {
-					parsedSwaps = append(parsedSwaps, p.processRaydSwaps(i)...)
-					break
-				}
-			}
+			parsedSwaps = append(parsedSwaps, p.processTransferSwapDex(i, RAYDIUM)...)
 		case progID.Equals(ORCA_PROGRAM_ID):
-			parsedSwaps = append(parsedSwaps, p.processOrcaSwaps(i)...)
+			parsedSwaps = append(parsedSwaps, p.processTransferSwapDex(i, ORCA)...)
 		case progID.Equals(METEORA_PROGRAM_ID) || progID.Equals(METEORA_POOLS_PROGRAM_ID):
-			parsedSwaps = append(parsedSwaps, p.processMeteoraSwaps(i)...)
+			parsedSwaps = append(parsedSwaps, p.processTransferSwapDex(i, METEORA)...)
 		case progID.Equals(PUMP_FUN_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW")): // PumpFun
 			parsedSwaps = append(parsedSwaps, p.processPumpfunSwaps(i)...)
@@ -325,20 +318,20 @@ func (p *Parser) processTradingBotSwaps(instructionIndex int) []SwapData {
 			progID.Equals(RAYDIUM_AMM_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID)) && !processedProtocols["raydium"]:
 			processedProtocols["raydium"] = true
-			if raydSwaps := p.processRaydSwaps(instructionIndex); len(raydSwaps) > 0 {
+			if raydSwaps := p.processTransferSwapDex(instructionIndex, RAYDIUM); len(raydSwaps) > 0 {
 				swaps = append(swaps, raydSwaps...)
 			}
 
 		case progID.Equals(ORCA_PROGRAM_ID) && !processedProtocols["orca"]:
 			processedProtocols["orca"] = true
-			if orcaSwaps := p.processOrcaSwaps(instructionIndex); len(orcaSwaps) > 0 {
+			if orcaSwaps := p.processTransferSwapDex(instructionIndex, ORCA); len(orcaSwaps) > 0 {
 				swaps = append(swaps, orcaSwaps...)
 			}
 
 		case (progID.Equals(METEORA_PROGRAM_ID) ||
 			progID.Equals(METEORA_POOLS_PROGRAM_ID)) && !processedProtocols["meteora"]:
 			processedProtocols["meteora"] = true
-			if meteoraSwaps := p.processMeteoraSwaps(instructionIndex); len(meteoraSwaps) > 0 {
+			if meteoraSwaps := p.processTransferSwapDex(instructionIndex, METEORA); len(meteoraSwaps) > 0 {
 				swaps = append(swaps, meteoraSwaps...)
 			}
 
