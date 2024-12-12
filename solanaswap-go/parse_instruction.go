@@ -37,6 +37,10 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
 				switch programId {
+				case PHOENIX_PROGRAM_ID:
+					return p.processTransferSwapDex(index, PHOENIX)
+				case LIFINITY_V2_PROGRAM_ID:
+					return p.processTransferSwapDex(index, LIFINITY)
 				case MOONSHOT_PROGRAM_ID:
 					return p.processMoonshotSwaps()
 				case RAYDIUM_V4_PROGRAM_ID,
@@ -44,13 +48,13 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 					RAYDIUM_AMM_PROGRAM_ID,
 					RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID,
 					solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
-					return p.processRaydSwaps(index)
+					return p.processTransferSwapDex(index, RAYDIUM)
 				case PUMP_FUN_PROGRAM_ID:
 					return p.processPumpfunSwaps(index)
 				case ORCA_PROGRAM_ID:
-					return p.processOrcaSwaps(index)
+					return p.processTransferSwapDex(index, ORCA)
 				case METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
-					return p.processMeteoraSwaps(index)
+					return p.processTransferSwapDex(index, METEORA)
 				default:
 					swaps = append(swaps, []SwapData{
 						{

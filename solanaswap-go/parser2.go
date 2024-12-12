@@ -36,20 +36,23 @@ func (p *Parser) NewTxParser() {
 			progID.Equals(MAESTRO_PROGRAM_ID):
 			// Check inner instructions to determine which swap protocol is being used
 			p.programParseTo(p.processTradingBotSwaps(i), progID)
-
+		case progID.Equals(LIFINITY_V2_PROGRAM_ID):
+			p.programParseTo(p.processTransferSwapDex(i, LIFINITY), progID)
+		case progID.Equals(PHOENIX_PROGRAM_ID):
+			p.programParseTo(p.processTransferSwapDex(i, PHOENIX), progID)
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CPMM_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_AMM_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
-			p.programParseTo(p.processRaydSwaps(i), progID)
+			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
 		case progID.Equals(OKX_PROGRAM_ID):
 			p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
 			// p.programParseTo(p.processOkxSwaps(i), progID)
 		case progID.Equals(ORCA_PROGRAM_ID):
-			p.programParseTo(p.processOrcaSwaps(i), progID)
+			p.programParseTo(p.processTransferSwapDex(i, ORCA), progID)
 		case progID.Equals(METEORA_PROGRAM_ID) || progID.Equals(METEORA_POOLS_PROGRAM_ID):
-			p.programParseTo(p.processMeteoraSwaps(i), progID)
+			p.programParseTo(p.processTransferSwapDex(i, METEORA), progID)
 		case progID.Equals(PUMP_FUN_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW")): // PumpFun
 			p.programParseTo(p.processPumpfunSwaps(i), progID)
@@ -101,7 +104,7 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 		p.parsePumpfunSwapData(progID, datas)
 	case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 		p.parseOneTransferSwapData(progID, datas)
-	case METEORA_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID:
+	case METEORA_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, PHOENIX_PROGRAM_ID, LIFINITY_V2_PROGRAM_ID:
 		p.parseGroupTransferSwapData(progID, datas)
 	case RAYDIUM_V4_PROGRAM_ID, ORCA_PROGRAM_ID, BANANA_GUN_PROGRAM_ID, MAESTRO_PROGRAM_ID,
 		METEORA_POOLS_PROGRAM_ID:
@@ -240,9 +243,10 @@ func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, i
 	who := p.AllAccountKeys[0].String()
 	var action Action
 	baseAction := BaseAction{
-		ProgramID:   progID.String(),
-		ProgramName: string(ProgramName[progID]),
-		Signature:   p.TxInfo.Signatures[0].String(),
+		ProgramID:       progID.String(),
+		ProgramName:     string(ProgramName[progID]),
+		InstructionName: in.Type.String(),
+		Signature:       p.TxInfo.Signatures[0].String(),
 	}
 	if in.Action == "add_liquidity" {
 		baseAction.InstructionName = "AddLiquidity"
@@ -308,7 +312,6 @@ func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, i
 		p.Actions = append(p.Actions, NewCommonDataAction(progID, p.TxInfo.Signatures[0].String(), in.Data))
 		return
 	} else {
-		baseAction.InstructionName = "Swap"
 		if len(instructionName) > 0 {
 			baseAction.InstructionName = instructionName[0]
 		}

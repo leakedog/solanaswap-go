@@ -25,7 +25,7 @@ type TokenInfo struct {
 	Decimals uint8
 }
 
-func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
+func (p *Parser) processTransferSwapDex(instructionIndex int, dexType SwapType) []SwapData {
 	var swaps []SwapData
 
 	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
@@ -35,68 +35,23 @@ func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 				case p.isTransfer(innerInstruction):
 					transfer := p.processTransfer(innerInstruction)
 					if transfer != nil {
-						swapData := SwapData{Type: RAYDIUM, Data: transfer}
-						if p.isRaydiumSwapEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "swap"
-						}
-						swaps = append(swaps, swapData)
-					}
-
-				case p.isTransferCheck(innerInstruction):
-					transfer := p.processTransferCheck(innerInstruction)
-					if transfer != nil {
-						swapData := SwapData{Type: RAYDIUM, Data: transfer}
-						if p.isRaydiumAddLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "add_liquidity"
-						}
-						swaps = append(swaps, swapData)
-					}
-				}
-			}
-		}
-	}
-	return swaps
-}
-
-func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
-	var swaps []SwapData
-	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
-			for _, innerInstruction := range innerInstructionSet.Instructions {
-				if p.isTransfer(innerInstruction) {
-					transfer := p.processTransfer(innerInstruction)
-					if transfer != nil {
-						swapData := SwapData{Type: ORCA, Data: transfer}
+						swapData := SwapData{Type: dexType, Data: transfer}
 						if p.isOrcaRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
+							swapData.Action = "remove_liquidity"
+						} else if p.isMeteoraRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
 							swapData.Action = "remove_liquidity"
 						}
 						swaps = append(swaps, swapData)
 					}
-				}
-			}
-		}
-	}
-	return swaps
-}
-
-func (p *Parser) processOkxSwaps(instructionIndex int) []SwapData {
-	var swaps []SwapData
-
-	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
-			for _, innerInstruction := range innerInstructionSet.Instructions {
-				switch {
-				case p.isTransfer(innerInstruction):
-					transfer := p.processTransfer(innerInstruction)
-					if transfer != nil {
-						swapData := SwapData{Type: OKX, Data: transfer}
-						swaps = append(swaps, swapData)
-					}
 
 				case p.isTransferCheck(innerInstruction):
 					transfer := p.processTransferCheck(innerInstruction)
 					if transfer != nil {
-						swapData := SwapData{Type: OKX, Data: transfer}
+						swapData := SwapData{Type: dexType, Data: transfer}
+						if p.isRaydiumAddLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
+							swapData.Action = "add_liquidity"
+						}
+
 						swaps = append(swaps, swapData)
 					}
 				}

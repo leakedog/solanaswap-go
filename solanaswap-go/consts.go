@@ -8,7 +8,8 @@ var (
 	JUPITER_PROGRAM_ID     = solana.MustPublicKeyFromBase58("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4")
 	JUPITER_DCA_PROGRAM_ID = solana.MustPublicKeyFromBase58("DCAK36VfExkPdAkYUQg6ewgxyinvcEyPLyHjRbmveKFw")
 	PUMP_FUN_PROGRAM_ID    = solana.MustPublicKeyFromBase58("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-	PHOENIX_PROGRAM_ID     = solana.MustPublicKeyFromBase58("PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY") // not supported yet
+	PHOENIX_PROGRAM_ID     = solana.MustPublicKeyFromBase58("PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY")
+	LIFINITY_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("2wT8Yq49kHgDzXuPxZSaeLaH1qbmGXtEyPy64bL7aD3c") // Lifinity Swap V2:
 
 	// Trading Bots
 	BANANA_GUN_PROGRAM_ID = solana.MustPublicKeyFromBase58("BANANAjs7FJiPQqJTGFzkZJndT9o7UmKiYYGaJz6frGu")
@@ -63,6 +64,7 @@ const (
 	RAYDIUM_CONCENTRATED_LIQUIDITY SwapType = "Raydium Concentrated Liquidity"
 	ORCA                           SwapType = "Orca"
 	PHOENIX                        SwapType = "Phoenix"
+	LIFINITY                       SwapType = "Lifinity"
 	BANANA_GUN                     SwapType = "Banana Gun"
 	MINTECH                        SwapType = "Mintech"
 	BLOOM                          SwapType = "Bloom"

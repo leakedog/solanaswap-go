@@ -25,33 +25,6 @@ type TransferCheck struct {
 	Type string `json:"type"`
 }
 
-func (p *Parser) processMeteoraSwaps(instructionIndex int) []SwapData {
-	var swaps []SwapData
-	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
-			for _, innerInstruction := range innerInstructionSet.Instructions {
-				switch {
-				case p.isTransferCheck(innerInstruction):
-					transfer := p.processTransferCheck(innerInstruction)
-					if transfer != nil {
-						swapData := SwapData{Type: METEORA, Data: transfer}
-						if p.isMeteoraRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "remove_liquidity"
-						}
-						swaps = append(swaps, swapData)
-					}
-				case p.isTransfer(innerInstruction):
-					transfer := p.processTransfer(innerInstruction)
-					if transfer != nil {
-						swaps = append(swaps, SwapData{Type: METEORA, Data: transfer})
-					}
-				}
-			}
-		}
-	}
-	return swaps
-}
-
 func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *TransferCheck {
 
 	amount := binary.LittleEndian.Uint64(instr.Data[1:9])
