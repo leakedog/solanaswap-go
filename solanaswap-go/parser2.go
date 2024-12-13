@@ -236,10 +236,6 @@ func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, i
 		ProgramName:     string(ProgramName[progID]),
 		InstructionName: in.Type.String(),
 		Signature:       p.TxInfo.Signatures[0].String(),
-		ProgramID:       progID.String(),
-		ProgramName:     string(ProgramName[progID]),
-		InstructionName: in.Type.String(),
-		Signature:       p.TxInfo.Signatures[0].String(),
 	}
 	if in.Action == "add_liquidity" {
 		baseAction.InstructionName = "AddLiquidity"
