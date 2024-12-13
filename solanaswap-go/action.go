@@ -105,3 +105,13 @@ type CommonRemoveLiquidityAction struct {
 	Token2Amount   uint64 `json:"token2Amount"`
 	Token2Decimals uint8  `json:"token2Decimals"`
 }
+
+type CommonSwapEventData struct {
+	Who               string `json:"who"`
+	FromToken         string `json:"fromToken"`
+	FromTokenAmount   uint64 `json:"fromTokenAmount"`
+	FromTokenDecimals uint8  `json:"fromTokenDecimals"`
+	ToToken           string `json:"toToken"`
+	ToTokenAmount     uint64 `json:"toTokenAmount"`
+	ToTokenDecimals   uint8  `json:"toTokenDecimals"`
+}

@@ -1,6 +1,7 @@
 package solanaswapgo
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"log"
@@ -10,7 +11,7 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-func CommonParseSwap[T any](result *Parser, instructionIndex int, programID solana.PublicKey, innerProgramIds ...solana.PublicKey) ([]*T, error) {
+func CommonParseInnerData[T any](result *Parser, instructionIndex int, progID solana.PublicKey, discriminator []byte) ([]*T, error) {
 	// var instructionIndex uint16
 	// for idx, instr := range result.TxInfo.Message.Instructions {
 	// 	if result.AllAccountKeys[instr.ProgramIDIndex] == programID && instr.Data.String() == instruction.Data.String() {
@@ -27,40 +28,45 @@ func CommonParseSwap[T any](result *Parser, instructionIndex int, programID sola
 		}
 	}
 
-	innerProgramId := programID
-	if len(innerProgramIds) > 0 {
-		innerProgramId = innerProgramIds[0]
-	}
+	return CommonParseData[T](result, instructions, progID, discriminator)
+}
 
+func CommonParseData[T any](result *Parser, instructions []solana.CompiledInstruction, progID solana.PublicKey, discriminator []byte) ([]*T, error) {
 	actions := make([]*T, 0)
 	for _, instr := range instructions {
 		programId := result.AllAccountKeys[instr.ProgramIDIndex]
+
 		switch programId {
-		case innerProgramId:
-			action := new(T)
+		case progID:
 			decodedBytes, err := base58.Decode(instr.Data.String())
 			if err != nil {
-				log.Printf("error decoding instruction data: %s", err)
+				log.Printf("error decoding instruction data: %s\n", err)
+				return nil, err
+			}
+
+			if !bytes.Equal(decodedBytes[:8], discriminator) {
 				continue
 			}
+
 			if len(decodedBytes) < 16 {
-				continue
+				return nil, fmt.Errorf("instruction data is error")
 			}
+
+			action := new(T)
 			decoder := bin.NewBorshDecoder(decodedBytes[16:])
+
 			// var data SwapData
 			err = decoder.Decode(action)
 			if err != nil {
-				log.Printf("error decoding instruction data: %s", err)
-				continue
+				log.Printf("Borsh decode data error: %s\n", err)
+				return nil, err
 			}
 			actions = append(actions, action)
-		default:
-			// fmt.Printf("commonParse: Program:%s, InnerProgram:%s unknown inner program:%s", programID, innerProgramId, programId)
 		}
-	}
 
-	if len(actions) > 0 {
-		return actions, nil
+		if len(actions) > 0 {
+			return actions, nil
+		}
 	}
 
 	return nil, fmt.Errorf("unknown instruction")

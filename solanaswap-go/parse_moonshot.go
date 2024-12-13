@@ -27,7 +27,56 @@ const (
 var (
 	MOONSHOT_BUY_INSTRUCTION  = ag_binary.TypeID([8]byte{102, 6, 61, 18, 1, 218, 235, 234})
 	MOONSHOT_SELL_INSTRUCTION = ag_binary.TypeID([8]byte{51, 230, 133, 164, 1, 127, 131, 173})
+	MOONSHOT_CREATE_TOKEN     = ag_binary.TypeID([8]byte{3, 44, 164, 184, 123, 13, 245, 179}) //CalculateDiscriminator("global:token_mint")
 )
+
+type MoonshotCreateTokenData struct {
+	Name     string
+	Symbol   string
+	Uri      string
+	Decimals uint8
+	Amount   uint64
+}
+
+type MoonshotCreateTokenEvent struct {
+	MoonshotCreateTokenData
+	CreatedOn uint64
+	User      solana.PublicKey
+	Mint      solana.PublicKey
+}
+
+func (p *Parser) processMoonshotCreateToken(progID solana.PublicKey, instruction solana.CompiledInstruction) []SwapData {
+
+	// datas, err := CommonParseData[MoonshotCreateTokenInstruction](p, p.TxInfo.Message.Instructions, progID, MOONSHOT_CREATE_TOKEN[:])
+	// if err != nil {
+	// 	return nil
+	// }
+
+	// if len(datas) == 0 {
+	// 	return nil
+	// }
+
+	// // data := datas[0]
+	// spew.Dump(datas)
+	// TODO: Implement this
+	return []SwapData{
+		{
+			Type:   MOONSHOT,
+			Action: "create_token",
+			Data: &MoonshotCreateTokenEvent{
+				MoonshotCreateTokenData: MoonshotCreateTokenData{
+					Name:     "Unknown",
+					Symbol:   "Unknown",
+					Uri:      "",
+					Decimals: p.SplDecimalsMap[p.TxInfo.Message.AccountKeys[instruction.Accounts[3]].String()],
+				},
+				CreatedOn: uint64(p.Tx.BlockTime.Time().Unix()),
+				User:      p.TxInfo.Message.AccountKeys[instruction.Accounts[0]],
+				Mint:      p.TxInfo.Message.AccountKeys[instruction.Accounts[3]],
+			},
+		},
+	}
+}
 
 // processMoonshotSwaps processes all Moonshot swap instructions in the transaction
 func (p *Parser) processMoonshotSwaps() []SwapData {

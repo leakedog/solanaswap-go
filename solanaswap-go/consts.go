@@ -29,6 +29,7 @@ var (
 	ORCA_PROGRAM_ID                           = solana.MustPublicKeyFromBase58("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc")
 	ORCA_TOKEN_V2_PROGRAM_ID                  = solana.MustPublicKeyFromBase58("9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
 
+	SWAP_DEX_PROGRAM_ID    = solana.MustPublicKeyFromBase58("SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8")
 	OPENBOOK_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb")
 
 	NATIVE_SOL_MINT_PROGRAM_ID = solana.MustPublicKeyFromBase58("So11111111111111111111111111111111111111112")
@@ -57,6 +58,7 @@ var (
 		ORCA_TOKEN_V2_PROGRAM_ID:                  ORCA,
 		FLUXBEAM_PROGRAM_ID:                       FLUXBEAM,
 		OPENBOOK_V2_PROGRAM_ID:                    OPENBOOK,
+		SWAP_DEX_PROGRAM_ID:                       SWAP_DEX,
 	}
 )
 
@@ -67,8 +69,9 @@ const (
 	PUMP_FUN SwapType = "PumpFun"
 	JUPITER  SwapType = "Jupiter"
 	// JUPITER_DCA SwapType = "Jupiter DCA"
-	OKX     SwapType = "OKX"
-	RAYDIUM SwapType = "Raydium"
+	OKX      SwapType = "OKX"
+	RAYDIUM  SwapType = "Raydium"
+	SWAP_DEX SwapType = "Swap Dex"
 	// RAYDIUM_AMM                    SwapType = "Raydium AMM"
 	// RAYDIUM_CPMM                   SwapType = "Raydium CPMM"
 	// RAYDIUM_CONCENTRATED_LIQUIDITY SwapType = "Raydium Concentrated Liquidity"

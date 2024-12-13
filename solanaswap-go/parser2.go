@@ -31,7 +31,8 @@ func (p *Parser) NewTxParser() {
 		case progID.Equals(JUPITER_PROGRAM_ID):
 			p.programParseTo(p.processJupiterSwaps(i), progID)
 		case progID.Equals(MOONSHOT_PROGRAM_ID):
-			p.programParseTo(p.processMoonshotSwaps(), progID)
+			// p.programParseTo(p.processMoonshotSwaps(), progID)
+			p.programParseTo(p.MoonshotInstruction(outerInstruction, progID, i), progID)
 		case progID.Equals(BANANA_GUN_PROGRAM_ID) ||
 			progID.Equals(MINTECH_PROGRAM_ID) ||
 			progID.Equals(BLOOM_PROGRAM_ID) ||
@@ -44,6 +45,8 @@ func (p *Parser) NewTxParser() {
 			p.programParseTo(p.processTransferSwapDex(i, PHOENIX), progID)
 		case progID.Equals(OPENBOOK_V2_PROGRAM_ID):
 			p.programParseTo(p.processTransferSwapDex(i, OPENBOOK), progID)
+		case progID.Equals(SWAP_DEX_PROGRAM_ID):
+			p.programParseTo(p.processTransferSwapDex(i, SWAP_DEX), progID)
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CPMM_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_AMM_PROGRAM_ID) ||
@@ -51,14 +54,11 @@ func (p *Parser) NewTxParser() {
 			progID.Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
 			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
-			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
 		case progID.Equals(OKX_PROGRAM_ID):
 			p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
-			// p.programParseTo(p.processOkxSwaps(i), progID)
 		case progID.Equals(ORCA_PROGRAM_ID) || progID.Equals(ORCA_TOKEN_V2_PROGRAM_ID):
 			p.programParseTo(p.processTransferSwapDex(i, ORCA), progID)
 		case progID.Equals(METEORA_PROGRAM_ID) || progID.Equals(METEORA_POOLS_PROGRAM_ID):
-			p.programParseTo(p.processTransferSwapDex(i, METEORA), progID)
 			p.programParseTo(p.processTransferSwapDex(i, METEORA), progID)
 		case progID.Equals(PUMP_FUN_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW")): // PumpFun
@@ -102,44 +102,7 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 	case METEORA_POOLS_PROGRAM_ID:
 		p.parseMeteoraPoolsSwapData(progID, datas)
 	case MOONSHOT_PROGRAM_ID:
-		data := datas[0].Data.(*MoonshotTradeInstructionWithMint)
-		switch data.TradeType {
-		case TradeTypeBuy: // BUY
-			p.Actions = append(p.Actions, CommonSwapAction{
-				BaseAction: BaseAction{
-					ProgramID:       progID.String(),
-					ProgramName:     "Moonshot",
-					InstructionName: "Swap",
-					Signature:       p.TxInfo.Signatures[0].String(),
-				},
-				Who:               p.AllAccountKeys[0].String(),
-				FromToken:         NATIVE_SOL_MINT_PROGRAM_ID.String(),
-				FromTokenAmount:   data.CollateralAmount,
-				FromTokenDecimals: 9,
-				ToToken:           data.Mint.String(),
-				ToTokenAmount:     data.TokenAmount,
-				ToTokenDecimals:   p.SplDecimalsMap[data.Mint.String()],
-			})
-
-		case TradeTypeSell: // SELL
-			p.Actions = append(p.Actions, CommonSwapAction{
-				BaseAction: BaseAction{
-					ProgramID:       progID.String(),
-					ProgramName:     "Moonshot",
-					InstructionName: "Swap",
-					Signature:       p.TxInfo.Signatures[0].String(),
-				},
-				Who:               p.AllAccountKeys[0].String(),
-				FromToken:         data.Mint.String(),
-				FromTokenAmount:   data.TokenAmount,
-				FromTokenDecimals: p.SplDecimalsMap[data.Mint.String()],
-				ToToken:           NATIVE_SOL_MINT_PROGRAM_ID.String(),
-				ToTokenAmount:     data.CollateralAmount,
-				ToTokenDecimals:   9,
-			})
-		default:
-			p.Actions = append(p.Actions, NewCommonDataAction(progID, p.TxInfo.Signatures[0].String(), data))
-		}
+		p.parseMoonshotSwapData(progID, datas)
 	case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 		p.parseOneTransferSwapData(progID, datas)
 	default:
@@ -152,6 +115,57 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 		// p.Actions = append(p.Actions, NewUnknownAction(progID, p.TxInfo.Signatures[0].String(), fmt.Errorf("unknown parser action, %s", progID.String())))
 	}
 
+}
+
+func (p *Parser) parseMoonshotSwapData(progID solana.PublicKey, swapDatas []SwapData) {
+	for _, data := range swapDatas {
+		switch v := data.Data.(type) {
+		case *MoonshotCreateTokenEvent:
+			p.Actions = append(p.Actions, CommonDataAction{
+				BaseAction: BaseAction{
+					ProgramID:       progID.String(),
+					ProgramName:     "Moonshot",
+					InstructionName: "CreateToken",
+					Signature:       p.TxInfo.Signatures[0].String(),
+				},
+				Data: v,
+			})
+		case *MoonshotTradeInstructionWithMint:
+			if v.TradeType == TradeTypeBuy {
+				p.Actions = append(p.Actions, CommonSwapAction{
+					BaseAction: BaseAction{
+						ProgramID:       progID.String(),
+						ProgramName:     "Moonshot",
+						InstructionName: "Swap",
+						Signature:       p.TxInfo.Signatures[0].String(),
+					},
+					Who:               p.AllAccountKeys[0].String(),
+					FromToken:         NATIVE_SOL_MINT_PROGRAM_ID.String(),
+					FromTokenAmount:   v.CollateralAmount,
+					FromTokenDecimals: 9,
+					ToToken:           v.Mint.String(),
+					ToTokenAmount:     v.TokenAmount,
+					ToTokenDecimals:   p.SplDecimalsMap[v.Mint.String()],
+				})
+			} else if v.TradeType == TradeTypeSell {
+				p.Actions = append(p.Actions, CommonSwapAction{
+					BaseAction: BaseAction{
+						ProgramID:       progID.String(),
+						ProgramName:     "Moonshot",
+						InstructionName: "Swap",
+						Signature:       p.TxInfo.Signatures[0].String(),
+					},
+					Who:               p.AllAccountKeys[0].String(),
+					FromToken:         v.Mint.String(),
+					FromTokenAmount:   v.TokenAmount,
+					FromTokenDecimals: p.SplDecimalsMap[v.Mint.String()],
+					ToToken:           NATIVE_SOL_MINT_PROGRAM_ID.String(),
+					ToTokenAmount:     v.CollateralAmount,
+					ToTokenDecimals:   9,
+				})
+			}
+		}
+	}
 }
 
 func (p *Parser) parsePumpfunSwapData(progID solana.PublicKey, swapDatas []SwapData) {

@@ -89,7 +89,6 @@ func (p *Parser) parsePumpfunCreateEventInstruction(instruction solana.CompiledI
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)
 	}
 	decoder := ag_binary.NewBorshDecoder(decodedBytes[16:])
-
 	return handlePumpfunCreateEvent(decoder)
 }
 
