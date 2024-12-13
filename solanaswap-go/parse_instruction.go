@@ -29,11 +29,13 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 					RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID,
 					solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 					return p.processTransferSwapDex(index, RAYDIUM)
+					return p.processTransferSwapDex(index, RAYDIUM)
 				case PUMP_FUN_PROGRAM_ID:
 					return p.processPumpfunSwaps(index)
 				case ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID:
 					return p.processTransferSwapDex(index, ORCA)
 				case METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
+					return p.processTransferSwapDex(index, METEORA)
 					return p.processTransferSwapDex(index, METEORA)
 				default:
 					swaps = append(swaps, []SwapData{

@@ -51,12 +51,14 @@ func (p *Parser) NewTxParser() {
 			progID.Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU")):
 			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
+			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
 		case progID.Equals(OKX_PROGRAM_ID):
 			p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
 			// p.programParseTo(p.processOkxSwaps(i), progID)
 		case progID.Equals(ORCA_PROGRAM_ID) || progID.Equals(ORCA_TOKEN_V2_PROGRAM_ID):
 			p.programParseTo(p.processTransferSwapDex(i, ORCA), progID)
 		case progID.Equals(METEORA_PROGRAM_ID) || progID.Equals(METEORA_POOLS_PROGRAM_ID):
+			p.programParseTo(p.processTransferSwapDex(i, METEORA), progID)
 			p.programParseTo(p.processTransferSwapDex(i, METEORA), progID)
 		case progID.Equals(PUMP_FUN_PROGRAM_ID) ||
 			progID.Equals(solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW")): // PumpFun
@@ -230,6 +232,10 @@ func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, i
 	who := p.AllAccountKeys[0].String()
 	var action Action
 	baseAction := BaseAction{
+		ProgramID:       progID.String(),
+		ProgramName:     string(ProgramName[progID]),
+		InstructionName: in.Type.String(),
+		Signature:       p.TxInfo.Signatures[0].String(),
 		ProgramID:       progID.String(),
 		ProgramName:     string(ProgramName[progID]),
 		InstructionName: in.Type.String(),
