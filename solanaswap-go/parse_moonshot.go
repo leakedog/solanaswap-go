@@ -31,11 +31,12 @@ var (
 )
 
 type MoonshotCreateTokenData struct {
-	Name     string
-	Symbol   string
-	Uri      string
-	Decimals uint8
-	Amount   uint64
+	Name               string
+	Symbol             string
+	Uri                string
+	Decimals           uint8
+	CollateralCurrency uint8
+	Amount             uint64
 }
 
 type MoonshotCreateTokenEvent struct {
@@ -46,36 +47,36 @@ type MoonshotCreateTokenEvent struct {
 }
 
 func (p *Parser) processMoonshotCreateToken(progID solana.PublicKey, instruction solana.CompiledInstruction) []SwapData {
-
-	// datas, err := CommonParseData[MoonshotCreateTokenInstruction](p, p.TxInfo.Message.Instructions, progID, MOONSHOT_CREATE_TOKEN[:])
-	// if err != nil {
-	// 	return nil
-	// }
-
-	// if len(datas) == 0 {
-	// 	return nil
-	// }
-
-	// // data := datas[0]
-	// spew.Dump(datas)
-	// TODO: Implement this
-	return []SwapData{
-		{
-			Type:   MOONSHOT,
-			Action: "create_token",
-			Data: &MoonshotCreateTokenEvent{
-				MoonshotCreateTokenData: MoonshotCreateTokenData{
-					Name:     "Unknown",
-					Symbol:   "Unknown",
-					Uri:      "",
-					Decimals: p.SplDecimalsMap[p.TxInfo.Message.AccountKeys[instruction.Accounts[3]].String()],
-				},
-				CreatedOn: uint64(p.Tx.BlockTime.Time().Unix()),
-				User:      p.TxInfo.Message.AccountKeys[instruction.Accounts[0]],
-				Mint:      p.TxInfo.Message.AccountKeys[instruction.Accounts[3]],
+	swapData := SwapData{
+		Type:   MOONSHOT,
+		Action: "create_token",
+		Data: &MoonshotCreateTokenEvent{
+			MoonshotCreateTokenData: MoonshotCreateTokenData{
+				Name:     "Unknown",
+				Symbol:   "Unknown",
+				Uri:      "",
+				Decimals: p.SplDecimalsMap[p.TxInfo.Message.AccountKeys[instruction.Accounts[3]].String()],
 			},
+			CreatedOn: uint64(p.Tx.BlockTime.Time().Unix()),
+			User:      p.TxInfo.Message.AccountKeys[instruction.Accounts[0]],
+			Mint:      p.TxInfo.Message.AccountKeys[instruction.Accounts[3]],
 		},
 	}
+	datas, err := CommonParseData[MoonshotCreateTokenData](p, p.TxInfo.Message.Instructions, progID, MOONSHOT_CREATE_TOKEN[:])
+	if err != nil || len(datas) == 0 {
+		return []SwapData{swapData}
+	}
+
+	data := datas[0]
+
+	swapData.Data.(*MoonshotCreateTokenEvent).Name = data.Name
+	swapData.Data.(*MoonshotCreateTokenEvent).Symbol = data.Symbol
+	swapData.Data.(*MoonshotCreateTokenEvent).Uri = data.Uri
+	swapData.Data.(*MoonshotCreateTokenEvent).Decimals = data.Decimals
+	swapData.Data.(*MoonshotCreateTokenEvent).CollateralCurrency = data.CollateralCurrency
+	swapData.Data.(*MoonshotCreateTokenEvent).Amount = data.Amount
+
+	return []SwapData{swapData}
 }
 
 // processMoonshotSwaps processes all Moonshot swap instructions in the transaction

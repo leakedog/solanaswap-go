@@ -44,16 +44,16 @@ func CommonParseData[T any](result *Parser, instructions []solana.CompiledInstru
 				return nil, err
 			}
 
+			if len(decodedBytes) < 8 {
+				return nil, fmt.Errorf("instruction data is error")
+			}
+
 			if !bytes.Equal(decodedBytes[:8], discriminator) {
 				continue
 			}
 
-			if len(decodedBytes) < 16 {
-				return nil, fmt.Errorf("instruction data is error")
-			}
-
 			action := new(T)
-			decoder := bin.NewBorshDecoder(decodedBytes[16:])
+			decoder := bin.NewBorshDecoder(decodedBytes[8:])
 
 			// var data SwapData
 			err = decoder.Decode(action)
