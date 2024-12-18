@@ -59,6 +59,7 @@ var (
 		FLUXBEAM_PROGRAM_ID:                       FLUXBEAM,
 		OPENBOOK_V2_PROGRAM_ID:                    OPENBOOK,
 		SWAP_DEX_PROGRAM_ID:                       SWAP_DEX,
+		LIFINITY_V2_PROGRAM_ID:                    LIFINITY,
 	}
 )
 

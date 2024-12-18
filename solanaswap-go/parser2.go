@@ -1,6 +1,7 @@
 package solanaswapgo
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gagliardetto/solana-go"
+	"github.com/mr-tron/base58"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 )
@@ -44,7 +46,16 @@ func (p *Parser) NewTxParser() {
 		case progID.Equals(PHOENIX_PROGRAM_ID):
 			p.programParseTo(p.processTransferSwapDex(i, PHOENIX), progID)
 		case progID.Equals(OPENBOOK_V2_PROGRAM_ID):
-			p.programParseTo(p.processTransferSwapDex(i, OPENBOOK), progID)
+			decodedBytes, err := base58.Decode(outerInstruction.Data.String())
+			if err != nil {
+				continue
+			}
+
+			swapDiscriminator := []byte{3, 44, 71, 3, 26, 199, 203, 85} //[3 44 71 3 26 199 203 85]
+			if bytes.Equal(decodedBytes[:8], swapDiscriminator) {
+				p.programParseTo(p.processTransferSwapDex(i, OPENBOOK), progID)
+			}
+
 		case progID.Equals(SWAP_DEX_PROGRAM_ID):
 			p.programParseTo(p.processTransferSwapDex(i, SWAP_DEX), progID)
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
