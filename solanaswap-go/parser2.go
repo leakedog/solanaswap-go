@@ -98,8 +98,8 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 		p.Actions = append(p.Actions, CommonSwapAction{
 			BaseAction: BaseAction{
 				ProgramID:       progID.String(),
-				ProgramName:     "Jupiter",
-				InstructionName: "Jupiter",
+				ProgramName:     string(ProgramName(data.Amm)),
+				InstructionName: string(ProgramName(data.Amm)),
 				Signature:       p.TxInfo.Signatures[0].String(),
 			},
 			Who:               p.AllAccountKeys[0].String(),
@@ -258,7 +258,7 @@ func (p *Parser) formatTransferData(in, out SwapData, progID solana.PublicKey, i
 	var action Action
 	baseAction := BaseAction{
 		ProgramID:       progID.String(),
-		ProgramName:     string(ProgramName[progID]),
+		ProgramName:     ProgramName(progID).String(),
 		InstructionName: in.Type.String(),
 		Signature:       p.TxInfo.Signatures[0].String(),
 	}

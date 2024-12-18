@@ -5,7 +5,6 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
-	"github.com/samber/lo"
 )
 
 func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID solana.PublicKey, index int) []SwapData {
@@ -48,7 +47,7 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 							Data: UnknownAction{
 								BaseAction: BaseAction{
 									ProgramID:       progID.String(),
-									ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
+									ProgramName:     ProgramName(progID).String(),
 									InstructionName: "Unknown",
 								},
 							},

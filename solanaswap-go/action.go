@@ -2,7 +2,6 @@ package solanaswapgo
 
 import (
 	"github.com/gagliardetto/solana-go"
-	"github.com/samber/lo"
 )
 
 type Action interface {
@@ -44,7 +43,7 @@ func NewUnknownAction(progID solana.PublicKey, signature string, err error) Unkn
 	return UnknownAction{
 		BaseAction: BaseAction{
 			ProgramID:       progID.String(),
-			ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
+			ProgramName:     ProgramName(progID).String(),
 			InstructionName: "Unknown",
 			Signature:       signature,
 		},
@@ -65,7 +64,7 @@ func NewCommonDataAction(progID solana.PublicKey, signature string, data interfa
 	return CommonDataAction{
 		BaseAction{
 			ProgramID:       progID.String(),
-			ProgramName:     lo.Ternary(lo.HasKey(ProgramName, progID), ProgramName[progID].String(), "Unknown"),
+			ProgramName:     ProgramName(progID).String(),
 			InstructionName: instructionNameStr,
 			Signature:       signature,
 		},

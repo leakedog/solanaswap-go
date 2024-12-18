@@ -36,7 +36,7 @@ var (
 )
 
 var (
-	ProgramName = map[solana.PublicKey]SwapType{
+	programName = map[solana.PublicKey]SwapType{
 		TOKEN_PROGRAM_ID:                          TOKEN,
 		OKX_PROGRAM_ID:                            OKX,
 		JUPITER_PROGRAM_ID:                        JUPITER,
@@ -90,6 +90,13 @@ const (
 	OPENBOOK SwapType = "Openbook"
 	UNKNOWN  SwapType = "Unknown"
 )
+
+func ProgramName(programId solana.PublicKey) SwapType {
+	if name, ok := programName[programId]; ok {
+		return name
+	}
+	return UNKNOWN
+}
 
 func (s SwapType) String() string {
 	return string(s)
