@@ -14,31 +14,43 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
 				switch programId {
-				case SWAP_DEX_PROGRAM_ID:
-					return p.processTransferSwapDex(index, SWAP_DEX)
-				case OPENBOOK_V2_PROGRAM_ID:
-					return p.processTransferSwapDex(index, OPENBOOK)
-				case PHOENIX_PROGRAM_ID:
-					return p.processTransferSwapDex(index, PHOENIX)
-				case LIFINITY_V2_PROGRAM_ID:
-					return p.processTransferSwapDex(index, LIFINITY)
-				case FLUXBEAM_PROGRAM_ID:
-					return p.processTransferSwapDex(index, FLUXBEAM)
+				case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, OPENBOOK_V2_PROGRAM_ID, PHOENIX_PROGRAM_ID, LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID,
+					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID, METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
+
+					datas := p.processTransferSwapDexByProgID(index, programId)
+					who := p.AllAccountKeys[0].String()
+					in := SwapData{}
+					out := SwapData{}
+					for _, v := range datas {
+						item := v.Data.(*TransferSwapData)
+						if item.Authority == who {
+							in = v
+							continue
+						}
+
+						tokenAccount, _, err := solana.FindAssociatedTokenAddress(solana.MustPublicKeyFromBase58(who), solana.MustPublicKeyFromBase58(item.Mint))
+						if err != nil {
+							continue
+						}
+						if tokenAccount.String() == item.Destination {
+							out = v
+						}
+					}
+
+					if in.Data != nil && out.Data != nil {
+						in.Type = out.Type
+						return append(swaps, in, out)
+					}
+
+					return datas
 				case MOONSHOT_PROGRAM_ID:
 					return p.processMoonshotSwaps()
-				case RAYDIUM_V4_PROGRAM_ID,
-					RAYDIUM_CPMM_PROGRAM_ID,
-					RAYDIUM_AMM_PROGRAM_ID,
-					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID,
-					RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID,
-					solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
+				case solana.MustPublicKeyFromBase58("1MooN32fuBBgApc8ujknKJw5sef3BVwPGgz3pto1BAh"):
+					return p.processTransferSwapDex(index, "1MooN")
+				case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 					return p.processTransferSwapDex(index, RAYDIUM)
-				case PUMP_FUN_PROGRAM_ID:
+				case PUMP_FUN_PROGRAM_ID, solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW"): // PumpFund
 					return p.processPumpfunSwaps(index)
-				case ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID:
-					return p.processTransferSwapDex(index, ORCA)
-				case METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
-					return p.processTransferSwapDex(index, METEORA)
 				default:
 					swaps = append(swaps, []SwapData{
 						{
@@ -57,6 +69,8 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 			}
 		}
 	}
+
+	// return swaps
 	return swaps
 }
 

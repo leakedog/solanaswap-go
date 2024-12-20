@@ -9,26 +9,24 @@ import (
 	"github.com/gagliardetto/solana-go"
 )
 
-type TransferCheck struct {
-	Info struct {
-		Authority   string `json:"authority"`
-		Destination string `json:"destination"`
-		Mint        string `json:"mint"`
-		Source      string `json:"source"`
-		TokenAmount struct {
-			Amount         string  `json:"amount"`
-			Decimals       uint8   `json:"decimals"`
-			UIAmount       float64 `json:"uiAmount"`
-			UIAmountString string  `json:"uiAmountString"`
-		} `json:"tokenAmount"`
-	} `json:"info"`
-	Type string `json:"type"`
-}
-
-func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *TransferCheck {
+func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *TransferSwapData {
 
 	amount := binary.LittleEndian.Uint64(instr.Data[1:9])
-
+	type TransferCheck struct {
+		Info struct {
+			Authority   string `json:"authority"`
+			Destination string `json:"destination"`
+			Mint        string `json:"mint"`
+			Source      string `json:"source"`
+			TokenAmount struct {
+				Amount         string  `json:"amount"`
+				Decimals       uint8   `json:"decimals"`
+				UIAmount       float64 `json:"uiAmount"`
+				UIAmountString string  `json:"uiAmountString"`
+			} `json:"tokenAmount"`
+		} `json:"info"`
+		Type string `json:"type"`
+	}
 	transferData := &TransferCheck{
 		Type: "transferChecked",
 	}
@@ -43,6 +41,16 @@ func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *Transfe
 	uiAmount := float64(amount) / math.Pow10(int(transferData.Info.TokenAmount.Decimals))
 	transferData.Info.TokenAmount.UIAmount = uiAmount
 	transferData.Info.TokenAmount.UIAmountString = strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.9f", uiAmount), "0"), ".")
-
-	return transferData
+	if amount == 0 {
+		return nil
+	}
+	return &TransferSwapData{
+		Type:        transferData.Type,
+		Authority:   transferData.Info.Authority,
+		Destination: transferData.Info.Destination,
+		Source:      transferData.Info.Source,
+		Amount:      amount,
+		Mint:        transferData.Info.Mint,
+		Decimals:    transferData.Info.TokenAmount.Decimals,
+	}
 }

@@ -71,47 +71,44 @@ func (p *Parser) isRaydiumSwapEventInstruction(inst solana.CompiledInstruction) 
 	return bytes.Equal(decodedBytes[:8], RaydiumSwapEventDiscriminator[:])
 }
 
-var RaydiumAddLiquidityEventDiscriminator = [8]byte{133, 29, 89, 223, 69, 238, 176, 10}
+type LiquidityEventType string
 
-func (p *Parser) isRaydiumAddLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID) || len(inst.Data) < 8 {
-		return false
-	}
+const (
+	AddLiquidity    LiquidityEventType = "add_liquidity"
+	RemoveLiquidity LiquidityEventType = "remove_liquidity"
+	NoLiquidity     LiquidityEventType = "unknown"
+)
 
-	decodedBytes, err := base58.Decode(inst.Data.String())
-	if err != nil {
-		return false
-	}
-	return bytes.Equal(decodedBytes[:8], RaydiumAddLiquidityEventDiscriminator[:])
+func (s LiquidityEventType) String() string {
+	return string(s)
 }
 
+var RaydiumAddLiquidityEventDiscriminator = [8]byte{133, 29, 89, 223, 69, 238, 176, 10}
 var OrcaRemoveLiquidityEventDiscriminator = [8]byte{164, 152, 207, 99, 30, 186, 19, 182}
 var OrcaRemoveLiquidityEventDiscriminator2 = [8]byte{160, 38, 208, 111, 104, 91, 44, 1}
-
-func (p *Parser) isOrcaRemoveLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(ORCA_PROGRAM_ID) || len(inst.Data) < 8 {
-		return false
-	}
-
-	decodedBytes, err := base58.Decode(inst.Data.String())
-	if err != nil {
-		return false
-	}
-
-	return bytes.Equal(decodedBytes[:8], OrcaRemoveLiquidityEventDiscriminator[:]) || bytes.Equal(decodedBytes[:8], OrcaRemoveLiquidityEventDiscriminator2[:])
-}
-
 var MeteoraRemoveLiquidityEventDiscriminator = [8]byte{26, 82, 102, 152, 240, 74, 105, 26}
+var MeteoraAddLiquidityEventDiscriminator = [8]byte{7, 3, 150, 127, 148, 40, 61, 200}
 
-func (p *Parser) isMeteoraRemoveLiquidityEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.AllAccountKeys[inst.ProgramIDIndex].Equals(METEORA_PROGRAM_ID) || len(inst.Data) < 8 {
-		return false
+func (p *Parser) isLiquidityEventInstruction(inst solana.CompiledInstruction) LiquidityEventType {
+	if len(inst.Data) < 8 {
+		return NoLiquidity
 	}
+
 	decodedBytes, err := base58.Decode(inst.Data.String())
 	if err != nil {
-		return false
+		return NoLiquidity
 	}
-	return bytes.Equal(decodedBytes[:8], MeteoraRemoveLiquidityEventDiscriminator[:])
+
+	discriminator := *(*[8]byte)(decodedBytes[:8])
+	switch discriminator {
+	case RaydiumAddLiquidityEventDiscriminator, MeteoraAddLiquidityEventDiscriminator:
+		return AddLiquidity
+	case OrcaRemoveLiquidityEventDiscriminator, OrcaRemoveLiquidityEventDiscriminator2, MeteoraRemoveLiquidityEventDiscriminator:
+		return RemoveLiquidity
+	default:
+		// fmt.Println(discriminator, CalculateDiscriminator("global:add_liquidity_by_strategy"))
+		return NoLiquidity
+	}
 }
 
 func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {

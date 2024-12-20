@@ -2,7 +2,6 @@ package solanaswapgo
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/gagliardetto/solana-go"
@@ -215,59 +214,33 @@ func (p *Parser) ProcessSwapData(swapDatas []SwapData) (*SwapInfo, error) {
 			return swapInfo, nil // Pumpfun only has one swap event
 		case METEORA:
 			switch swapData.Data.(type) {
-			case *TransferCheck:
-				swapData := swapData.Data.(*TransferCheck)
-				if i == 0 {
-					tokenInAmount, _ := strconv.ParseInt(swapData.Info.TokenAmount.Amount, 10, 64)
-					swapInfo.TokenInMint = solana.MustPublicKeyFromBase58(swapData.Info.Mint)
-					swapInfo.TokenInAmount = uint64(tokenInAmount)
-					swapInfo.TokenInDecimals = swapData.Info.TokenAmount.Decimals
-				} else {
-					tokenOutAmount, _ := strconv.ParseFloat(swapData.Info.TokenAmount.Amount, 64)
-					swapInfo.TokenOutMint = solana.MustPublicKeyFromBase58(swapData.Info.Mint)
-					swapInfo.TokenOutAmount = uint64(tokenOutAmount)
-					swapInfo.TokenOutDecimals = swapData.Info.TokenAmount.Decimals
-				}
-			case *TransferData: // Meteora Pools
-				swapData := swapData.Data.(*TransferData)
+			case *TransferSwapData: // Meteora Pools
+				swapData := swapData.Data.(*TransferSwapData)
 				if i == 0 {
 					swapInfo.TokenInMint = solana.MustPublicKeyFromBase58(swapData.Mint)
-					swapInfo.TokenInAmount = swapData.Info.Amount
+					swapInfo.TokenInAmount = swapData.Amount
 					swapInfo.TokenInDecimals = swapData.Decimals
 				} else {
-					if swapData.Info.Authority == swapInfo.Signers[0].String() && swapData.Mint == swapInfo.TokenInMint.String() {
-						swapInfo.TokenInAmount += swapData.Info.Amount
+					if swapData.Authority == swapInfo.Signers[0].String() && swapData.Mint == swapInfo.TokenInMint.String() {
+						swapInfo.TokenInAmount += swapData.Amount
 					}
 					swapInfo.TokenOutMint = solana.MustPublicKeyFromBase58(swapData.Mint)
-					swapInfo.TokenOutAmount = swapData.Info.Amount
+					swapInfo.TokenOutAmount = swapData.Amount
 					swapInfo.TokenOutDecimals = swapData.Decimals
 				}
 			}
 		case RAYDIUM, ORCA:
 			switch swapData.Data.(type) {
-			case *TransferData: // Raydium V4 and Orca
-				swapData := swapData.Data.(*TransferData)
+			case *TransferSwapData: // Raydium V4 and Orca
+				swapData := swapData.Data.(*TransferSwapData)
 				if i == 0 {
 					swapInfo.TokenInMint = solana.MustPublicKeyFromBase58(swapData.Mint)
-					swapInfo.TokenInAmount = swapData.Info.Amount
+					swapInfo.TokenInAmount = swapData.Amount
 					swapInfo.TokenInDecimals = swapData.Decimals
 				} else {
 					swapInfo.TokenOutMint = solana.MustPublicKeyFromBase58(swapData.Mint)
-					swapInfo.TokenOutAmount = swapData.Info.Amount
+					swapInfo.TokenOutAmount = swapData.Amount
 					swapInfo.TokenOutDecimals = swapData.Decimals
-				}
-			case *TransferCheck: // Raydium CPMM
-				swapData := swapData.Data.(*TransferCheck)
-				if i == 0 {
-					tokenInAmount, _ := strconv.ParseInt(swapData.Info.TokenAmount.Amount, 10, 64)
-					swapInfo.TokenInMint = solana.MustPublicKeyFromBase58(swapData.Info.Mint)
-					swapInfo.TokenInAmount = uint64(tokenInAmount)
-					swapInfo.TokenInDecimals = swapData.Info.TokenAmount.Decimals
-				} else {
-					tokenOutAmount, _ := strconv.ParseFloat(swapData.Info.TokenAmount.Amount, 64)
-					swapInfo.TokenOutMint = solana.MustPublicKeyFromBase58(swapData.Info.Mint)
-					swapInfo.TokenOutAmount = uint64(tokenOutAmount)
-					swapInfo.TokenOutDecimals = swapData.Info.TokenAmount.Decimals
 				}
 			}
 		case MOONSHOT:

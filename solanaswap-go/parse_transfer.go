@@ -6,53 +6,61 @@ import (
 	"github.com/gagliardetto/solana-go"
 )
 
-type TransferInfo struct {
-	Amount      uint64 `json:"amount"`
-	Authority   string `json:"authority"`
-	Destination string `json:"destination"`
-	Source      string `json:"source"`
-}
-
-type TransferData struct {
-	Info     TransferInfo `json:"info"`
-	Type     string       `json:"type"`
-	Mint     string       `json:"mint"`
-	Decimals uint8        `json:"decimals"`
-}
-
 type TokenInfo struct {
 	Mint     string
 	Decimals uint8
 }
 
+type TransferSwapData struct {
+	Type        string `json:"type"`
+	Authority   string `json:"authority"`
+	Destination string `json:"destination"`
+	Source      string `json:"source"`
+	Amount      uint64 `json:"amount"`
+	Mint        string `json:"mint"`
+	Decimals    uint8  `json:"decimals"`
+}
+
+func (p *Parser) processTransferSwapDexByProgID(instructionIndex int, progId solana.PublicKey) []SwapData {
+	return p.processTransferSwapDex(instructionIndex, ProgramName(progId))
+}
+
 func (p *Parser) processTransferSwapDex(instructionIndex int, dexType SwapType) []SwapData {
 	var swaps []SwapData
 
+	progIdName := dexType
 	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
+				progId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
 				switch {
 				case p.isTransfer(innerInstruction):
 					transfer := p.processTransfer(innerInstruction)
 					if transfer != nil {
-						swapData := SwapData{Type: dexType, Data: transfer}
-						if p.isOrcaRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "remove_liquidity"
-						} else if p.isMeteoraRemoveLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "remove_liquidity"
+						swapData := SwapData{Type: progIdName, Data: transfer}
+						if event := p.isLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]); event != NoLiquidity {
+							swapData.Action = event.String()
 						}
+
 						swaps = append(swaps, swapData)
 					}
 
 				case p.isTransferCheck(innerInstruction):
 					transfer := p.processTransferCheck(innerInstruction)
 					if transfer != nil {
-						swapData := SwapData{Type: dexType, Data: transfer}
-						if p.isRaydiumAddLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]) {
-							swapData.Action = "add_liquidity"
+						swapData := SwapData{Type: progIdName, Data: transfer}
+						if event := p.isLiquidityEventInstruction(p.TxInfo.Message.Instructions[instructionIndex]); event != NoLiquidity {
+							swapData.Action = event.String()
 						}
 
 						swaps = append(swaps, swapData)
+					}
+				default:
+					if progId != TOKEN_PROGRAM_ID {
+						name := ProgramName(progId)
+						if name != UNKNOWN {
+							progIdName = name
+						}
 					}
 				}
 			}
@@ -61,9 +69,23 @@ func (p *Parser) processTransferSwapDex(instructionIndex int, dexType SwapType) 
 	return swaps
 }
 
-func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferData {
+func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferSwapData {
 
 	amount := binary.LittleEndian.Uint64(instr.Data[1:9])
+
+	type TransferInfo struct {
+		Amount      uint64 `json:"amount"`
+		Authority   string `json:"authority"`
+		Destination string `json:"destination"`
+		Source      string `json:"source"`
+	}
+
+	type TransferData struct {
+		Info     TransferInfo `json:"info"`
+		Type     string       `json:"type"`
+		Mint     string       `json:"mint"`
+		Decimals uint8        `json:"decimals"`
+	}
 
 	transferData := &TransferData{
 		Info: TransferInfo{
@@ -81,7 +103,19 @@ func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferData
 		transferData.Mint = "Unknown"
 	}
 
-	return transferData
+	if amount == 0 {
+		return nil
+	}
+
+	return &TransferSwapData{
+		Type:        transferData.Type,
+		Authority:   transferData.Info.Authority,
+		Destination: transferData.Info.Destination,
+		Source:      transferData.Info.Source,
+		Amount:      amount,
+		Mint:        transferData.Mint,
+		Decimals:    transferData.Decimals,
+	}
 }
 
 func (p *Parser) extractSPLTokenInfo() error {

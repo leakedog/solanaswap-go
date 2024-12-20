@@ -3,7 +3,12 @@ package solanaswapgo
 import "github.com/gagliardetto/solana-go"
 
 var (
-	TOKEN_PROGRAM_ID       = solana.MustPublicKeyFromBase58("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+	TOKEN_PROGRAM_ID           = solana.TokenProgramID
+	NATIVE_SOL_MINT_PROGRAM_ID = solana.SolMint
+	SWAP_DEX_PROGRAM_ID        = solana.TokenSwapProgramID
+)
+
+var (
 	OKX_PROGRAM_ID         = solana.MustPublicKeyFromBase58("6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma")
 	JUPITER_PROGRAM_ID     = solana.MustPublicKeyFromBase58("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4")
 	JUPITER_DCA_PROGRAM_ID = solana.MustPublicKeyFromBase58("DCAK36VfExkPdAkYUQg6ewgxyinvcEyPLyHjRbmveKFw")
@@ -29,10 +34,9 @@ var (
 	ORCA_PROGRAM_ID                           = solana.MustPublicKeyFromBase58("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc")
 	ORCA_TOKEN_V2_PROGRAM_ID                  = solana.MustPublicKeyFromBase58("9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
 
-	SWAP_DEX_PROGRAM_ID    = solana.MustPublicKeyFromBase58("SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8")
 	OPENBOOK_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb")
-
-	NATIVE_SOL_MINT_PROGRAM_ID = solana.MustPublicKeyFromBase58("So11111111111111111111111111111111111111112")
+	STABLE_SWAP_PROGRAM_ID = solana.MustPublicKeyFromBase58("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ")
+	ALDRIN_AMM_PROGRAM_ID  = solana.MustPublicKeyFromBase58("CURVGoZn8zycx6FXwwevgBTB2gVvdbGTEpvMJDbgs2t4")
 )
 
 var (
@@ -60,35 +64,34 @@ var (
 		OPENBOOK_V2_PROGRAM_ID:                    OPENBOOK,
 		SWAP_DEX_PROGRAM_ID:                       SWAP_DEX,
 		LIFINITY_V2_PROGRAM_ID:                    LIFINITY,
+		STABLE_SWAP_PROGRAM_ID:                    STABLE_SWAP,
+		ALDRIN_AMM_PROGRAM_ID:                     ALDRIN_AMM,
 	}
 )
 
 type SwapType string
 
 const (
-	TOKEN    SwapType = "Token Transfer"
-	PUMP_FUN SwapType = "PumpFun"
-	JUPITER  SwapType = "Jupiter"
-	// JUPITER_DCA SwapType = "Jupiter DCA"
-	OKX      SwapType = "OKX"
-	RAYDIUM  SwapType = "Raydium"
-	SWAP_DEX SwapType = "Swap Dex"
-	// RAYDIUM_AMM                    SwapType = "Raydium AMM"
-	// RAYDIUM_CPMM                   SwapType = "Raydium CPMM"
-	// RAYDIUM_CONCENTRATED_LIQUIDITY SwapType = "Raydium Concentrated Liquidity"
-	ORCA       SwapType = "Orca"
-	PHOENIX    SwapType = "Phoenix"
-	LIFINITY   SwapType = "Lifinity"
-	BANANA_GUN SwapType = "Banana Gun"
-	MINTECH    SwapType = "Mintech"
-	BLOOM      SwapType = "Bloom"
-	MAESTRO    SwapType = "Maestro"
-	METEORA    SwapType = "Meteora"
-	// METEORA_POOLS SwapType = "Meteora Pools"
-	MOONSHOT SwapType = "Moonshot"
-	FLUXBEAM SwapType = "Fluxbeam"
-	OPENBOOK SwapType = "Openbook"
-	UNKNOWN  SwapType = "Unknown"
+	TOKEN       SwapType = "Token Transfer"
+	PUMP_FUN    SwapType = "PumpFun"
+	JUPITER     SwapType = "Jupiter"
+	OKX         SwapType = "OKX"
+	RAYDIUM     SwapType = "Raydium"
+	SWAP_DEX    SwapType = "Swap Dex"
+	ORCA        SwapType = "Orca"
+	PHOENIX     SwapType = "Phoenix"
+	LIFINITY    SwapType = "LifinityV2"
+	BANANA_GUN  SwapType = "Banana Gun"
+	MINTECH     SwapType = "Mintech"
+	BLOOM       SwapType = "Bloom"
+	MAESTRO     SwapType = "Maestro"
+	METEORA     SwapType = "Meteora"
+	MOONSHOT    SwapType = "Moonshot"
+	FLUXBEAM    SwapType = "Fluxbeam"
+	OPENBOOK    SwapType = "Openbook"
+	STABLE_SWAP SwapType = "StableSwap"
+	ALDRIN_AMM  SwapType = "Aldrin"
+	UNKNOWN     SwapType = "Unknown"
 )
 
 func ProgramName(programId solana.PublicKey) SwapType {
