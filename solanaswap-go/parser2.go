@@ -211,7 +211,17 @@ func (p *Parser) parsePumpfunSwapData(progID solana.PublicKey, swapDatas []SwapD
 
 }
 
-func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas []SwapData) {
+func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, datas []SwapData) {
+	var swapDatas []SwapData
+	for _, v := range datas {
+		switch v.Data.(type) {
+		case *TransferSwapData:
+			swapDatas = append(swapDatas, v)
+		default:
+			p.Actions = append(p.Actions, NewCommonDataAction(progID, p.TxInfo.Signatures[0].String(), v))
+		}
+	}
+
 	if len(swapDatas) == 0 {
 		return
 	}
@@ -229,6 +239,7 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, swapDatas [
 	for _, v := range resultGroup {
 		in := v[0]
 		out := v[1]
+
 		if reflect.TypeOf(in.Data) == reflect.TypeOf(out.Data) {
 			p.formatTransferData(in, out, progID)
 		}

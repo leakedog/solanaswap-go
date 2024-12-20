@@ -14,9 +14,11 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
 				switch programId {
-				case SPL_ASSOCIATED_TOKEN_ID:
-				case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, OPENBOOK_V2_PROGRAM_ID, PHOENIX_PROGRAM_ID, LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID,
-					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID, METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
+				case SPL_ASSOCIATED_TOKEN_ID, TOKEN_PROGRAM_ID:
+				case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, STABLE_SWAP_V2_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, OPENBOOK_V2_PROGRAM_ID, PHOENIX_PROGRAM_ID,
+					LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID,
+					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID,
+					METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
 
 					datas := p.processTransferSwapDexByProgID(index, programId)
 					who := p.AllAccountKeys[0].String()
@@ -24,7 +26,7 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 					out := SwapData{}
 					for _, v := range datas {
 						item := v.Data.(*TransferSwapData)
-						if item.Authority == who {
+						if item.Authority == who && in.Data == nil {
 							in = v
 							continue
 						}
@@ -53,19 +55,23 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 				case PUMP_FUN_PROGRAM_ID:
 					return p.processPumpfunSwaps(index)
 				default:
-					swaps = append(swaps, []SwapData{
-						{
-							Type:   UNKNOWN,
-							Action: UNKNOWN.String(),
-							Data: UnknownAction{
-								BaseAction: BaseAction{
-									ProgramID:       progID.String(),
-									ProgramName:     ProgramName(progID).String(),
-									InstructionName: "Unknown",
+					if progID == OKX_PROGRAM_ID {
+						fmt.Println("OKX", instruction.Data.String(), programId)
+						swaps = append(swaps, []SwapData{
+							{
+								Type:   "OKX",
+								Action: UNKNOWN.String(),
+								Data: UnknownAction{
+									BaseAction: BaseAction{
+										ProgramID:       programId.String(),
+										ProgramName:     ProgramName(progID).String(),
+										InstructionName: "Unknown",
+									},
 								},
 							},
-						},
-					}...)
+						}...)
+					}
+
 				}
 			}
 		}

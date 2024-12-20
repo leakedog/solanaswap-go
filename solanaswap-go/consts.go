@@ -35,9 +35,10 @@ var (
 	ORCA_PROGRAM_ID                           = solana.MustPublicKeyFromBase58("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc")
 	ORCA_TOKEN_V2_PROGRAM_ID                  = solana.MustPublicKeyFromBase58("9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
 
-	OPENBOOK_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb")
-	STABLE_SWAP_PROGRAM_ID = solana.MustPublicKeyFromBase58("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ")
-	ALDRIN_AMM_PROGRAM_ID  = solana.MustPublicKeyFromBase58("CURVGoZn8zycx6FXwwevgBTB2gVvdbGTEpvMJDbgs2t4")
+	OPENBOOK_V2_PROGRAM_ID    = solana.MustPublicKeyFromBase58("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb")
+	STABLE_SWAP_PROGRAM_ID    = solana.MustPublicKeyFromBase58("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ")
+	STABLE_SWAP_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ")
+	ALDRIN_AMM_PROGRAM_ID     = solana.MustPublicKeyFromBase58("CURVGoZn8zycx6FXwwevgBTB2gVvdbGTEpvMJDbgs2t4")
 )
 
 var (
