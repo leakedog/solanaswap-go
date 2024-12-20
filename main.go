@@ -44,7 +44,7 @@ func main() {
 }
 
 func fetchSignatureTx(rpcClient *rpc.Client) {
-	txSig := solana.MustSignatureFromBase58("5eiAow161Yb1Le5wytxUL1uo91U1GYYMb4UsKZ1BtNn722xqPTZQ68Jk9fSGXBkZ34RtwWysZT9L18yZYesAfSTR")
+	txSig := solana.MustSignatureFromBase58("3EHTCZMCEZH4kukfqGENtnZ6F5WKZ7DfUuzSL67npgfcdQyH2nUQdB4i2MxDxcrTVWMpUFxQDDD6AaG5hd4wxsvX")
 	var maxTxVersion uint64 = 0
 	tx, err := rpcClient.GetTransaction(
 		context.TODO(),
@@ -58,7 +58,7 @@ func fetchSignatureTx(rpcClient *rpc.Client) {
 		log.Fatalf("error getting tx: %s", err)
 	}
 
-	parser, err := solanaswapgo.NewTransactionParser(tx)
+	parser, err := solanaswapgo.NewParser(tx)
 	if err != nil {
 		log.Fatalf("error creating orca parser: %s", err)
 	}
@@ -103,7 +103,7 @@ func fetchBlockTx(rpcClient *rpc.Client) {
 		tx.BlockTime = out.BlockTime
 		tx.Slot = blockNumber // out.ParentSlot+1 It's wrong. The previous block is not continuous and there will be bad blocks in the middle.
 
-		parser, err := solanaswapgo.NewBlockTransactionParser(tx)
+		parser, err := solanaswapgo.NewParser(&tx)
 		if err != nil {
 			log.Fatalf("error creating orca parser: %s", err)
 		}

@@ -2,6 +2,7 @@ package solanaswapgo
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/gagliardetto/solana-go"
@@ -20,43 +21,28 @@ type Parser struct {
 	SwapData        []SwapData
 }
 
-func NewTransactionParser(tx *rpc.GetTransactionResult) (*Parser, error) {
-
-	txInfo, err := tx.Transaction.GetTransaction()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get transaction: %w", err)
+func NewParser(txItem interface{}) (*Parser, error) {
+	var tx *rpc.GetTransactionResult
+	var txInfo *solana.Transaction
+	var err error
+	switch txItem := txItem.(type) {
+	case *rpc.GetTransactionResult:
+		tx = txItem
+		txInfo, err = txItem.Transaction.GetTransaction()
+	case *rpc.TransactionWithMeta:
+		tx = &rpc.GetTransactionResult{
+			Slot:      txItem.Slot,
+			BlockTime: txItem.BlockTime,
+			// Transaction: tx.Transaction,
+			Meta:    txItem.Meta,
+			Version: txItem.Version,
+		}
+		txInfo, err = txItem.GetTransaction()
+	default:
+		fmt.Println(reflect.TypeOf(txItem))
+		return nil, fmt.Errorf("unsupported transaction type: %T", tx)
 	}
 
-	allAccountKeys := append(txInfo.Message.AccountKeys, tx.Meta.LoadedAddresses.Writable...)
-	allAccountKeys = append(allAccountKeys, tx.Meta.LoadedAddresses.ReadOnly...)
-
-	log := logrus.New()
-	log.SetFormatter(&logrus.TextFormatter{
-		TimestampFormat: "2006-01-02 15:04:05",
-		FullTimestamp:   true,
-	})
-
-	parser := &Parser{
-		Tx:             tx,
-		TxInfo:         txInfo,
-		AllAccountKeys: allAccountKeys,
-		Log:            log,
-	}
-
-	if err := parser.extractSPLTokenInfo(); err != nil {
-		return nil, fmt.Errorf("failed to extract SPL Token Addresses: %w", err)
-	}
-
-	if err := parser.extractSPLDecimals(); err != nil {
-		return nil, fmt.Errorf("failed to extract SPL decimals: %w", err)
-	}
-
-	return parser, nil
-}
-
-func NewBlockTransactionParser(tx rpc.TransactionWithMeta) (*Parser, error) {
-
-	txInfo, err := tx.GetTransaction()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction: %w", err)
 	}
@@ -74,13 +60,11 @@ func NewBlockTransactionParser(tx rpc.TransactionWithMeta) (*Parser, error) {
 		Tx: &rpc.GetTransactionResult{
 			Slot:      tx.Slot,
 			BlockTime: tx.BlockTime,
-			// Transaction: tx.Transaction,
-			Meta:    tx.Meta,
-			Version: tx.Version,
+			Meta:      tx.Meta,
+			Version:   tx.Version,
 		},
 		TxInfo:         txInfo,
 		AllAccountKeys: allAccountKeys,
-		Log:            log,
 	}
 
 	if err := parser.extractSPLTokenInfo(); err != nil {
