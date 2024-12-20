@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	PumpfunTradeEventDiscriminator  = [16]byte{228, 69, 165, 46, 81, 203, 154, 29, 189, 219, 127, 211, 78, 230, 97, 238}
-	PumpfunCreateEventDiscriminator = [16]byte{228, 69, 165, 46, 81, 203, 154, 29, 27, 114, 169, 77, 222, 235, 99, 118}
+	PumpfunTradeEventDiscriminator    = [16]byte{228, 69, 165, 46, 81, 203, 154, 29, 189, 219, 127, 211, 78, 230, 97, 238}
+	PumpfunCreateEventDiscriminator   = [16]byte{228, 69, 165, 46, 81, 203, 154, 29, 27, 114, 169, 77, 222, 235, 99, 118}
+	PumpfunCompleteEventDiscriminator = [8]byte{95, 114, 97, 156, 212, 46, 152, 8}
 )
 
 type PumpfunTradeEvent struct {
@@ -31,6 +32,13 @@ type PumpfunCreateEvent struct {
 	Mint         solana.PublicKey
 	BondingCurve solana.PublicKey
 	User         solana.PublicKey
+}
+
+type PumpfunCompleteEvent struct {
+	User         solana.PublicKey
+	Mint         solana.PublicKey
+	BondingCurve solana.PublicKey
+	Timestamp    int64
 }
 
 func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
@@ -54,6 +62,14 @@ func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
 					}
 					if create != nil {
 						swaps = append(swaps, SwapData{Type: PUMP_FUN, Data: create})
+					}
+				case p.isPumpFunCompleteEventInstruction(innerInstruction):
+					complete, err := p.parsePumpfunCompleteEventInstruction(innerInstruction)
+					if err != nil {
+						p.Log.Errorf("error processing Pumpfun complete event: %s", err)
+					}
+					if complete != nil {
+						swaps = append(swaps, SwapData{Type: PUMP_FUN, Data: complete})
 					}
 				}
 
@@ -99,4 +115,22 @@ func handlePumpfunCreateEvent(decoder *ag_binary.Decoder) (*PumpfunCreateEvent, 
 	}
 
 	return &create, nil
+}
+
+func (p *Parser) parsePumpfunCompleteEventInstruction(instruction solana.CompiledInstruction) (*PumpfunCompleteEvent, error) {
+	decodedBytes, err := base58.Decode(instruction.Data.String())
+	if err != nil {
+		return nil, fmt.Errorf("error decoding instruction data: %s", err)
+	}
+	decoder := ag_binary.NewBorshDecoder(decodedBytes[16:])
+	return handlePumpfunCompleteEvent(decoder)
+}
+
+func handlePumpfunCompleteEvent(decoder *ag_binary.Decoder) (*PumpfunCompleteEvent, error) {
+	var complete PumpfunCompleteEvent
+	if err := decoder.Decode(&complete); err != nil {
+		return nil, fmt.Errorf("error unmarshaling CompleteEvent: %s", err)
+	}
+
+	return &complete, nil
 }

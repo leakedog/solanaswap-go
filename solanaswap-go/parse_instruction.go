@@ -7,13 +7,14 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID solana.PublicKey, index int) []SwapData {
+func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, progID solana.PublicKey, index int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.Tx.Meta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(index) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				programId := p.AllAccountKeys[innerInstruction.ProgramIDIndex]
 				switch programId {
+				case SPL_ASSOCIATED_TOKEN_ID:
 				case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, OPENBOOK_V2_PROGRAM_ID, PHOENIX_PROGRAM_ID, LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID,
 					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID, METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
 
@@ -49,13 +50,13 @@ func (p *Parser) OkxInstruction(instruction solana.CompiledInstruction, progID s
 					return p.processTransferSwapDex(index, "1MooN")
 				case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 					return p.processTransferSwapDex(index, RAYDIUM)
-				case PUMP_FUN_PROGRAM_ID, solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW"): // PumpFund
+				case PUMP_FUN_PROGRAM_ID:
 					return p.processPumpfunSwaps(index)
 				default:
 					swaps = append(swaps, []SwapData{
 						{
-							Type:   OKX,
-							Action: "Unknown",
+							Type:   UNKNOWN,
+							Action: UNKNOWN.String(),
 							Data: UnknownAction{
 								BaseAction: BaseAction{
 									ProgramID:       progID.String(),

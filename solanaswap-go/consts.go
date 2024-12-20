@@ -6,6 +6,7 @@ var (
 	TOKEN_PROGRAM_ID           = solana.TokenProgramID
 	NATIVE_SOL_MINT_PROGRAM_ID = solana.SolMint
 	SWAP_DEX_PROGRAM_ID        = solana.TokenSwapProgramID
+	SPL_ASSOCIATED_TOKEN_ID    = solana.SPLAssociatedTokenAccountProgramID
 )
 
 var (

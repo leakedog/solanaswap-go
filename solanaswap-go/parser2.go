@@ -24,7 +24,7 @@ func (p *Parser) NewTxParser() {
 		progID := p.AllAccountKeys[outerInstruction.ProgramIDIndex]
 		switch progID {
 		case solana.VoteProgramID, solana.SystemProgramID, solana.ComputeBudget:
-		case TOKEN_PROGRAM_ID:
+		case TOKEN_PROGRAM_ID, SPL_ASSOCIATED_TOKEN_ID:
 		case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, PHOENIX_PROGRAM_ID, LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID, RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID, METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
 			p.programParseTo(p.processTransferSwapDexByProgID(i, progID), progID)
 		case JUPITER_PROGRAM_ID:
@@ -48,10 +48,11 @@ func (p *Parser) NewTxParser() {
 		case solana.MustPublicKeyFromBase58("AP51WLiiqTdbZfgyRMs35PsZpdmLuPDdHYmrB23pEtMU"):
 			p.programParseTo(p.processTransferSwapDex(i, RAYDIUM), progID)
 		case OKX_PROGRAM_ID:
-			p.programParseTo(p.OkxInstruction(outerInstruction, progID, i), progID)
-		case PUMP_FUN_PROGRAM_ID, solana.MustPublicKeyFromBase58("BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW"):
+			p.programParseTo(p.InnerParseInstruction(outerInstruction, progID, i), progID)
+		case PUMP_FUN_PROGRAM_ID:
 			p.programParseTo(p.processPumpfunSwaps(i), progID)
 		default:
+			p.programParseTo(p.InnerParseInstruction(outerInstruction, progID, i), progID)
 			// fmt.Println("UNKNOWN Program", progID, p.TxInfo.Signatures[0].String())
 		}
 	}
@@ -165,6 +166,16 @@ func (p *Parser) parsePumpfunSwapData(progID solana.PublicKey, swapDatas []SwapD
 					ProgramID:       progID.String(),
 					ProgramName:     "PumpFun",
 					InstructionName: "Create",
+					Signature:       p.TxInfo.Signatures[0].String(),
+				},
+				Data: v,
+			})
+		case *PumpfunCompleteEvent:
+			p.Actions = append(p.Actions, CommonDataAction{
+				BaseAction: BaseAction{
+					ProgramID:       progID.String(),
+					ProgramName:     "PumpFun",
+					InstructionName: "Complete",
 					Signature:       p.TxInfo.Signatures[0].String(),
 				},
 				Data: v,
