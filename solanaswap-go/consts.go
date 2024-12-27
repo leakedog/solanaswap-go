@@ -39,6 +39,8 @@ var (
 	STABLE_SWAP_PROGRAM_ID    = solana.MustPublicKeyFromBase58("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ")
 	STABLE_SWAP_V2_PROGRAM_ID = solana.MustPublicKeyFromBase58("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ")
 	ALDRIN_AMM_PROGRAM_ID     = solana.MustPublicKeyFromBase58("CURVGoZn8zycx6FXwwevgBTB2gVvdbGTEpvMJDbgs2t4")
+	SANCTUM_PROGRAM_ID        = solana.MustPublicKeyFromBase58("5ocnV1qiCgaQR8Jb8xWnVbApfaygJ8tNoZfgPwsgx9kx")
+	SAROS_AMM_PROGRAM_ID      = solana.MustPublicKeyFromBase58("SSwapUtytfBdBn1b9NUGG6foMVPtcWgpRU32HToDUZr")
 )
 
 var (
@@ -68,6 +70,8 @@ var (
 		LIFINITY_V2_PROGRAM_ID:                    LIFINITY,
 		STABLE_SWAP_PROGRAM_ID:                    STABLE_SWAP,
 		ALDRIN_AMM_PROGRAM_ID:                     ALDRIN_AMM,
+		SANCTUM_PROGRAM_ID:                        SANCTUM,
+		SAROS_AMM_PROGRAM_ID:                      SAROS_AMM,
 	}
 )
 
@@ -93,6 +97,8 @@ const (
 	OPENBOOK    SwapType = "Openbook"
 	STABLE_SWAP SwapType = "StableSwap"
 	ALDRIN_AMM  SwapType = "Aldrin"
+	SANCTUM     SwapType = "Sanctum"
+	SAROS_AMM   SwapType = "Saros"
 	UNKNOWN     SwapType = "Unknown"
 )
 

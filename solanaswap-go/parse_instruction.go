@@ -18,7 +18,7 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 				case ALDRIN_AMM_PROGRAM_ID, STABLE_SWAP_PROGRAM_ID, STABLE_SWAP_V2_PROGRAM_ID, SWAP_DEX_PROGRAM_ID, OPENBOOK_V2_PROGRAM_ID, PHOENIX_PROGRAM_ID,
 					LIFINITY_V2_PROGRAM_ID, FLUXBEAM_PROGRAM_ID, RAYDIUM_V4_PROGRAM_ID, RAYDIUM_CPMM_PROGRAM_ID, RAYDIUM_AMM_PROGRAM_ID,
 					RAYDIUM_AMM_LIQUIDITY_POOL_PROGRAM_ID, RAYDIUM_CONCENTRATED_LIQUIDITY_PROGRAM_ID, ORCA_PROGRAM_ID, ORCA_TOKEN_V2_PROGRAM_ID,
-					METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID:
+					METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID, SAROS_AMM_PROGRAM_ID:
 
 					datas := p.processTransferSwapDexByProgID(index, programId)
 					who := p.AllAccountKeys[0].String()
@@ -56,7 +56,7 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 					return p.processPumpfunSwaps(index)
 				default:
 					if progID == OKX_PROGRAM_ID {
-						fmt.Println("OKX", instruction.Data.String(), programId)
+						// fmt.Println("OKX", instruction.Data.String(), programId)
 						swaps = append(swaps, []SwapData{
 							{
 								Type:   "OKX",
