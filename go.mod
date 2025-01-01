@@ -1,4 +1,4 @@
-module github.com/franco-bianco/solanaswap-go
+module github.com/leakedog/solanaswap-go
 
 go 1.23.2
 
