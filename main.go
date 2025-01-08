@@ -41,7 +41,7 @@ func main() {
 }
 
 func fetchSignatureTx(rpcClient *rpc.Client) {
-	txSig := solana.MustSignatureFromBase58("27yQ87jYN7hdkhaQoWn7jyM5Q1Kx649Yx8zt65eZCcnpJ3iseNEaBTh438bFL3meSheBHZVwU2oYuELPcViyixAz")
+	txSig := solana.MustSignatureFromBase58("2i1JTj6DotdXrJ4em6LJdoeyCgZMvjeeUqkAcBMnaQvTgtM6vqrUce7KsjtvuEKdTQcPDBBLBciJ6e4cbDn9kWRq")
 	var maxTxVersion uint64 = 0
 	tx, err := rpcClient.GetTransaction(
 		context.TODO(),
@@ -73,10 +73,18 @@ func fetchSignatureTx(rpcClient *rpc.Client) {
 	// Marshal the parsed result to JSON
 	parsedJson, err := json.Marshal(parser)
 	if err != nil {
+		fmt.Println("Error marshalling JSON:", parsedJson)
 		return
 	}
 
-	fmt.Println(string(parsedJson))
+	jsonData, err := json.MarshalIndent(parser, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	// Print the indented JSON string
+	fmt.Println(string(jsonData))
 }
 
 // func fetchBlockTx(rpcClient *rpc.Client) {

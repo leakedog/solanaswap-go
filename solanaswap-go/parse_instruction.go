@@ -21,29 +21,30 @@ func (p *Parser) InnerParseInstruction(instruction solana.CompiledInstruction, p
 					METEORA_PROGRAM_ID, METEORA_POOLS_PROGRAM_ID, SAROS_AMM_PROGRAM_ID:
 
 					datas := p.processTransferSwapDexByProgID(index, programId)
-					who := p.AllAccountKeys[0].String()
-					in := SwapData{}
-					out := SwapData{}
-					for _, v := range datas {
-						item := v.Data.(*TransferSwapData)
-						if item.Authority == who && in.Data == nil {
-							in = v
-							continue
-						}
+					// who := p.AllAccountKeys[0].String()
+					// in := SwapData{}
+					// out := SwapData{}
+					// // for _, v := range datas {
+					// 	item := v.Data.(*TransferSwapData)
+					// 	fmt.Println("item", item)
+					// 	if item.Authority == who && in.Data == nil {
+					// 		in = v
+					// 		continue
+					// 	}
 
-						tokenAccount, _, err := solana.FindAssociatedTokenAddress(solana.MustPublicKeyFromBase58(who), solana.MustPublicKeyFromBase58(item.Mint))
-						if err != nil {
-							continue
-						}
-						if tokenAccount.String() == item.Destination {
-							out = v
-						}
-					}
+					// 	tokenAccount, _, err := solana.FindAssociatedTokenAddress(solana.MustPublicKeyFromBase58(who), solana.MustPublicKeyFromBase58(item.Mint))
+					// 	if err != nil {
+					// 		continue
+					// 	}
+					// 	if tokenAccount.String() == item.Destination {
+					// 		out = v
+					// 	}
+					// }
 
-					if in.Data != nil && out.Data != nil {
-						in.Type = out.Type
-						return append(swaps, in, out)
-					}
+					// if in.Data != nil && out.Data != nil {
+					// 	in.Type = out.Type
+					// 	return append(swaps, in, out)
+					// }
 
 					return datas
 				case MOONSHOT_PROGRAM_ID:
