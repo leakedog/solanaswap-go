@@ -71,23 +71,24 @@ func (p *Parser) parseDataToAction(datas []SwapData, progID solana.PublicKey) {
 	case TOKEN_PROGRAM_ID:
 		p.Actions = append(p.Actions, NewUnknownAction(progID, p.TxInfo.Signatures[0].String(), nil))
 	case JUPITER_PROGRAM_ID:
-		data := datas[0].Data.(*JupiterSwapEventData)
-		last := lo.LastOrEmpty(datas).Data.(*JupiterSwapEventData)
-		p.Actions = append(p.Actions, CommonSwapAction{
-			BaseAction: BaseAction{
-				ProgramID:       progID.String(),
-				ProgramName:     string(ProgramName(data.Amm)),
-				InstructionName: string(ProgramName(data.Amm)),
-				Signature:       p.TxInfo.Signatures[0].String(),
-			},
-			Who:               p.AllAccountKeys[0].String(),
-			FromToken:         data.InputMint.String(),
-			FromTokenAmount:   data.InputAmount,
-			FromTokenDecimals: p.SplDecimalsMap[data.InputMint.String()],
-			ToToken:           last.OutputMint.String(),
-			ToTokenAmount:     last.OutputAmount,
-			ToTokenDecimals:   p.SplDecimalsMap[last.OutputMint.String()],
-		})
+		for _, v := range datas {
+			data := v.Data.(*JupiterSwapEventData)
+			p.Actions = append(p.Actions, CommonSwapAction{
+				BaseAction: BaseAction{
+					ProgramID:       progID.String(),
+					ProgramName:     string(ProgramName(data.Amm)),
+					InstructionName: string(ProgramName(data.Amm)),
+					Signature:       p.TxInfo.Signatures[0].String(),
+				},
+				Who:               p.AllAccountKeys[0].String(),
+				FromToken:         data.InputMint.String(),
+				FromTokenAmount:   data.InputAmount,
+				FromTokenDecimals: p.SplDecimalsMap[data.InputMint.String()],
+				ToToken:           data.OutputMint.String(),
+				ToTokenAmount:     data.OutputAmount,
+				ToTokenDecimals:   p.SplDecimalsMap[data.OutputMint.String()],
+			})
+		}
 	case METEORA_POOLS_PROGRAM_ID:
 		p.parseMeteoraPoolsSwapData(progID, datas)
 	case MOONSHOT_PROGRAM_ID:
