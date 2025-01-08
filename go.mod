@@ -3,7 +3,7 @@ module github.com/leakedog/solanaswap-go
 go 1.23.2
 
 require (
-	github.com/franco-bianco/solanaswap-go v0.0.0-20241227104834-b8ecb4e39875
+	github.com/franco-bianco/solanaswap-go v0.0.0-20250103064122-f7950b6651d8 // indirect
 	github.com/gagliardetto/binary v0.8.0
 	github.com/gagliardetto/solana-go v1.12.0
 	github.com/mr-tron/base58 v1.2.0
