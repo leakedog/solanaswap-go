@@ -3,7 +3,6 @@ package solanaswapgo
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gagliardetto/solana-go"
@@ -226,24 +225,10 @@ func (p *Parser) parseGroupTransferSwapData(progID solana.PublicKey, datas []Swa
 		return
 	}
 
-	var resultGroup [][2]SwapData
-	if len(swapDatas) == 1 {
-		p.formatTransferData(swapDatas[0], swapDatas[0], progID, "OnlyTransfer")
-		return
+	for i := 0; i < len(swapDatas); i++ {
+		p.formatTransferData(swapDatas[i], swapDatas[i], progID, "OnlyTransfer")
 	}
 
-	for i := 0; i < len(swapDatas)-1; i += 2 {
-		resultGroup = append(resultGroup, [2]SwapData{swapDatas[i], swapDatas[i+1]})
-	}
-
-	for _, v := range resultGroup {
-		in := v[0]
-		out := v[1]
-
-		if reflect.TypeOf(in.Data) == reflect.TypeOf(out.Data) {
-			p.formatTransferData(in, out, progID)
-		}
-	}
 }
 
 func (p *Parser) parseOneTransferSwapData(progID solana.PublicKey, swapDatas []SwapData) {

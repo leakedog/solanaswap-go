@@ -5,13 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-	solanaswapgo "github.com/franco-bianco/solanaswap-go/solanaswap-go"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/gagliardetto/solana-go/rpc/jsonrpc"
+	solanaswapgo "github.com/leakedog/solanaswap-go/solanaswap-go"
 )
 
 /*
@@ -44,7 +41,7 @@ func main() {
 }
 
 func fetchSignatureTx(rpcClient *rpc.Client) {
-	txSig := solana.MustSignatureFromBase58("3EHTCZMCEZH4kukfqGENtnZ6F5WKZ7DfUuzSL67npgfcdQyH2nUQdB4i2MxDxcrTVWMpUFxQDDD6AaG5hd4wxsvX")
+	txSig := solana.MustSignatureFromBase58("27yQ87jYN7hdkhaQoWn7jyM5Q1Kx649Yx8zt65eZCcnpJ3iseNEaBTh438bFL3meSheBHZVwU2oYuELPcViyixAz")
 	var maxTxVersion uint64 = 0
 	tx, err := rpcClient.GetTransaction(
 		context.TODO(),
@@ -64,71 +61,68 @@ func fetchSignatureTx(rpcClient *rpc.Client) {
 	}
 
 	parser.NewTxParser()
-	spew.Dump(parser.Actions)
-	spew.Dump("========================BREAK========================", parser.SwapData)
-	return
-	transactionData, err := parser.ParseTransaction()
+	// spew.Dump(parser.Actions)
+	// spew.Dump("========================BREAK========================", parser.SwapData)
+
+	// swapData, err := parser.ProcessSwapData(parser.SwapData)
+	// if err != nil {
+	// 	log.Fatalf("Error processing swap data: %s", err)
+	// }
+
+	// fmt.Println("Swap Data:", swapData)
+	// Marshal the parsed result to JSON
+	parsedJson, err := json.Marshal(parser)
 	if err != nil {
-		log.Fatalf("error parsing transaction: %s", err)
+		return
 	}
 
-	// marshalledData, _ := json.MarshalIndent(transactionData, "", "  ")
-	// fmt.Println(string(marshalledData))
-	// return
-
-	swapData, err := parser.ProcessSwapData(transactionData)
-	if err != nil {
-		log.Fatalf("error processing swap data: %s", err)
-	}
-
-	marshalledSwapData, _ := json.MarshalIndent(swapData, "", "  ")
-	fmt.Println(string(marshalledSwapData))
+	fmt.Println(string(parsedJson))
 }
 
-func fetchBlockTx(rpcClient *rpc.Client) {
-	blockNumber := uint64(306035317)
-	maxSupportedTransactionVersion := uint64(0)
-	out, err := rpcClient.GetBlockWithOpts(context.TODO(), blockNumber, &rpc.GetBlockOpts{
-		MaxSupportedTransactionVersion: &maxSupportedTransactionVersion,
-	})
-	if err != nil {
-		if strings.HasSuffix(err.(*jsonrpc.RPCError).Message, "was skipped, or missing due to ledger jump to recent snapshot") {
-			log.Println("skipped block: ", blockNumber)
-			return
-		}
-		panic(err)
-	}
+// func fetchBlockTx(rpcClient *rpc.Client) {
+// 	blockNumber := uint64(306035317)
+// 	maxSupportedTransactionVersion := uint64(0)
+// 	out, err := rpcClient.GetBlockWithOpts(context.TODO(), blockNumber, &rpc.GetBlockOpts{
+// 		MaxSupportedTransactionVersion: &maxSupportedTransactionVersion,
+// 	})
+// 	if err != nil {
+// 		if strings.HasSuffix(err.(*jsonrpc.RPCError).Message, "was skipped, or missing due to ledger jump to recent snapshot") {
+// 			log.Println("skipped block: ", blockNumber)
+// 			return
+// 		}
+// 		panic(err)
+// 	}
 
-	for _, tx := range out.Transactions {
-		tx.BlockTime = out.BlockTime
-		tx.Slot = blockNumber // out.ParentSlot+1 It's wrong. The previous block is not continuous and there will be bad blocks in the middle.
+// 	for _, tx := range out.Transactions {
+// 		tx.BlockTime = out.BlockTime
+// 		tx.Slot = blockNumber // out.ParentSlot+1 It's wrong. The previous block is not continuous and there will be bad blocks in the middle.
 
-		parser, err := solanaswapgo.NewParser(&tx)
-		if err != nil {
-			log.Fatalf("error creating orca parser: %s", err)
-		}
+// 		parser, err := solanaswapgo.NewParser(&tx)
+// 		if err != nil {
+// 			log.Fatalf("error creating orca parser: %s", err)
+// 		}
 
-		parser.NewTxParser()
-		spew.Dump(parser.Actions)
-		spew.Dump("========================BREAK========================", parser.SwapData)
+// 		parser.NewTxParser()
+// 		spew.Dump(parser.Actions)
+// 		spew.Dump("========================BREAK========================", parser.SwapData)
 
-		// transactionData, err := parser.ParseTransaction()
-		// if err != nil {
-		// 	log.Fatalf("error parsing transaction: %s", err)
-		// }
+// 		// transactionData, err := parser.ParseTransaction()
+// 		// if err != nil {
+// 		// 	log.Fatalf("error parsing transaction: %s", err)
+// 		// }
 
-		// // marshalledData, _ := json.MarshalIndent(transactionData, "", "  ")
-		// // spew.Dump(transactionData)
-		// // return
-		// swapData, err := parser.ProcessSwapData(transactionData)
-		// if err != nil {
-		// 	log.Fatalf("error processing swap data: %s", err)
-		// }
+// 		// // marshalledData, _ := json.MarshalIndent(transactionData, "", "  ")
+// 		// // spew.Dump(transactionData)
+// 		// // return
+// 		// swapData, err := parser.ProcessSwapData(transactionData)
+// 		// if err != nil {
+// 		// 	log.Fatalf("error processing swap data: %s", err)
+// 		// }
 
-		// marshalledSwapData, _ := json.MarshalIndent(swapData, "", "  ")
-		// if "3gtHe9aUoBiiyZBNuiWpAjqMz6LCK7V6LXijHJNbL1DtRdFyBsTrXgMV4sDcU7PEHeyYhyPxXt6Ynt1mkE6wsRVz" == swapData.Signatures[0].String() {
-		// 	fmt.Println(string(marshalledSwapData))
-		// 	return
-		// }
-	}
-}
+// 		// marshalledSwapData, _ := json.MarshalIndent(swapData, "", "  ")
+// 		// if "3gtHe9aUoBiiyZBNuiWpAjqMz6LCK7V6LXijHJNbL1DtRdFyBsTrXgMV4sDcU7PEHeyYhyPxXt6Ynt1mkE6wsRVz" == swapData.Signatures[0].String() {
+// 		// 	fmt.Println(string(marshalledSwapData))
+// 		// 	return
+// 		// }
+// 	}
+// }
